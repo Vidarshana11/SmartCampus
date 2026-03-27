@@ -11,7 +11,6 @@ server.servlet.context-path=/
 # DATABASE CONFIGURATION
 # ========================================
 # MySQL/MariaDB connection details
-# IMPORTANT: Update these with your actual database credentials
 
 spring.datasource.url=jdbc:mysql://localhost:3306/smart_campus_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
@@ -26,15 +25,11 @@ spring.datasource.hikari.connection-timeout=30000
 # ========================================
 # JPA/HIBERNATE CONFIGURATION
 # ========================================
-# Hibernate will automatically create/update database schema
 
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=false
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
-spring.jpa.properties.hibernate.jdbc.batch_size=20
-spring.jpa.properties.hibernate.order_inserts=true
-spring.jpa.properties.hibernate.order_updates=true
 
 # ========================================
 # LOGGING CONFIGURATION
@@ -43,13 +38,10 @@ spring.jpa.properties.hibernate.order_updates=true
 logging.level.root=INFO
 logging.level.com.smartcampus.api=DEBUG
 logging.level.org.springframework.security=DEBUG
-logging.level.org.hibernate.SQL=DEBUG
-logging.level.org.hibernate.type.descriptor.sql=TRACE
 
 # ========================================
 # JWT (JSON Web Token) CONFIGURATION
 # ========================================
-# Used for authentication and authorization
 
 jwt.secret=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
 jwt.expiration=86400000
@@ -58,8 +50,15 @@ jwt.refresh-expiration=604800000
 # ========================================
 # OAUTH2 GOOGLE CONFIGURATION
 # ========================================
-# Leave as placeholder if not using OAuth2
-# Get credentials from: https://console.cloud.google.com/
+# IMPORTANT: Get credentials from https://console.cloud.google.com/
+# See README.md for detailed setup instructions
+
+# 1. Go to https://console.cloud.google.com/
+# 2. Create a new project
+# 3. Enable Google+ API
+# 4. Create OAuth2 Web Application credentials
+# 5. Add redirect URI: http://localhost:8080/login/oauth2/code/google
+# 6. Copy Client ID and Client Secret below:
 
 spring.security.oauth2.client.registration.google.client-id=YOUR_GOOGLE_CLIENT_ID
 spring.security.oauth2.client.registration.google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
@@ -72,7 +71,6 @@ spring.security.oauth2.client.provider.google.user-name-attribute=email
 # ========================================
 # CORS CONFIGURATION
 # ========================================
-# Cross-Origin Resource Sharing settings
 
 cors.allowed-origins=http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173
 cors.allowed-methods=GET,POST,PUT,DELETE,OPTIONS,PATCH
@@ -83,7 +81,6 @@ cors.allow-credentials=true
 # ========================================
 # FILE UPLOAD CONFIGURATION
 # ========================================
-# Maximum file and request sizes for multipart uploads
 
 spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=30MB
