@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              campus: {
+                navy: '#7a5b00',
+                teal: '#b8860b',
+                gold: '#f59e0b',
+              },
+              sluit: {
+                maroon: '#8b1e1e',
+                slate: '#4b5563',
+                announcementBg: '#f3f4f6',
+                orange: '#f59e0b'
+              }
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
