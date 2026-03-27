@@ -36,6 +36,9 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Backend Configuration (contains sensitive credentials)
+backend/src/main/resources/application.properties
+
 # Logs
 *.log
 logs/
