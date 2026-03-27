@@ -173,7 +173,7 @@ export default function Login() {
 
                 <div className="mt-6 grid grid-cols-2 gap-3">
                   <a
-                    href="/oauth2/authorization/google"
+                    href="http://localhost:8080/oauth2/authorization/google"
                     className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
                   >
                     <FaGoogle className="w-5 h-5 text-red-500" />
