@@ -40,6 +40,9 @@ Thumbs.db
 application.properties
 application-*.properties
 
+# Backend Configuration (contains sensitive credentials)
+backend/src/main/resources/application.properties
+
 # Logs
 *.log
 logs/
