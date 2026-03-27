@@ -107,7 +107,7 @@ export default function Register() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="John Doe"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent transition-all"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent transition-all text-black placeholder:text-gray-400"
                       required
                     />
                   </div>
@@ -127,7 +127,7 @@ export default function Register() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="student@campus.edu"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent transition-all"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent transition-all text-black placeholder:text-gray-400"
                       required
                     />
                   </div>
@@ -147,7 +147,7 @@ export default function Register() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent transition-all"
+                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent transition-all text-black placeholder:text-gray-400"
                       required
                       minLength={6}
                     />
@@ -174,9 +174,9 @@ export default function Register() {
                       id="role"
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent transition-all bg-white"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent transition-all bg-white text-black appearance-none cursor-pointer"
                     >
-  <option value="STUDENT">Student</option>
+                      <option value="STUDENT">Student</option>
                       <option value="LECTURER">Lecturer</option>
                       <option value="TECHNICIAN">Technician</option>
                       <option value="MANAGER">Manager</option>
