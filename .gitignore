@@ -6,6 +6,8 @@ backend/*.jar
 backend/*.war
 backend/*.ear
 backend/*.zip
+backend/src/main/resources/application.properties
+backend/uploads/
 
 # Frontend
 frontend/node_modules/
@@ -31,10 +33,12 @@ frontend/*.tsbuildinfo
 .DS_Store
 Thumbs.db
 
-# Environment
+# Environment & Configuration
 .env
 .env.local
 .env.*.local
+application.properties
+application-*.properties
 
 # Logs
 *.log
