@@ -4,6 +4,7 @@
  */
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/AuthProvider'
+import { usePageTitle } from '../hooks/usePageTitle'
 import * as roleService from '../services/roleService'
 import './RoleManagement.css'
 
@@ -17,6 +18,7 @@ const ROLES = [
 
 export default function RoleManagement() {
   const { token, user: currentUser } = useAuth()
+  usePageTitle('Role Management')
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)

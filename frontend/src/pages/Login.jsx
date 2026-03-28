@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { FaGraduationCap, FaEye, FaEyeSlash, FaGoogle, FaGithub, FaEnvelope, FaLock } from 'react-icons/fa'
 
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  usePageTitle('Sign In')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

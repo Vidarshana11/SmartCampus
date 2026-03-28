@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { usePageTitle } from '../hooks/usePageTitle'
 import {
   FaGraduationCap,
   FaCalendarAlt,
@@ -68,6 +69,7 @@ const stats = [
 export default function Landing() {
   const { token, loading } = useAuth()
   const navigate = useNavigate()
+  usePageTitle('Home')
 
   useEffect(() => {
     if (!loading && token) navigate('/dashboard', { replace: true })
