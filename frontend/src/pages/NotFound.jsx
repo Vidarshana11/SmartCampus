@@ -1,9 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { FaHome, FaSearch, FaGraduationCap } from 'react-icons/fa'
 
 export default function NotFound() {
   const { token } = useAuth()
+  usePageTitle('Page Not Found')
   const location = useLocation()
   const isLoggedIn = !!token
 

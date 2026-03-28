@@ -10,6 +10,7 @@ import {
   FaCheckCircle,
   FaClock
 } from 'react-icons/fa'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 // Mock data for admin dashboard
 const stats = [
@@ -39,6 +40,7 @@ const supportTickets = [
 ]
 
 export default function AdminPanel() {
+  usePageTitle('Admin Panel')
   return (
     <div className="space-y-6">
       {/* Header */}
