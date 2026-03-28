@@ -1,12 +1,14 @@
 import { useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { FaGraduationCap } from 'react-icons/fa'
 
 export default function OAuthSuccess() {
   const location = useLocation()
   const navigate = useNavigate()
   const { loginWithToken } = useAuth()
+  usePageTitle('Authenticating')
 
   const token = useMemo(() => {
     const params = new URLSearchParams(location.search)
