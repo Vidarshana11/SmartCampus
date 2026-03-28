@@ -1,4 +1,5 @@
 import { useAuth } from '../auth/AuthProvider'
+import { usePageTitle } from '../hooks/usePageTitle'
 import {
   FaCalendarAlt,
   FaBook,
@@ -122,6 +123,7 @@ const recentActivity = [
 
 export default function Dashboard() {
   const { user } = useAuth()
+  usePageTitle('Dashboard')
   const userName = user?.name || 'Student'
 
   // Get greeting based on time of day
