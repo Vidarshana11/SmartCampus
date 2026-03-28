@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { FaGraduationCap, FaEye, FaEyeSlash, FaUser, FaEnvelope, FaLock, FaIdBadge } from 'react-icons/fa'
 
 export default function Register() {
   const { register } = useAuth()
   const navigate = useNavigate()
+  usePageTitle('Create Account')
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
