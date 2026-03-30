@@ -7,7 +7,7 @@ import { FaGraduationCap } from 'react-icons/fa'
 export default function OAuthSuccess() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { loginWithToken } = useAuth()
+  const { loginWithToken, user } = useAuth()
   usePageTitle('Authenticating')
 
   const token = useMemo(() => {
@@ -31,9 +31,11 @@ export default function OAuthSuccess() {
       try {
         await loginWithToken(token)
         if (!cancelled) {
-          // New users go to role selection, returning users go to dashboard
-          const redirectPath = isNewUser ? `/role-selection?token=${token}` : '/dashboard'
-          navigate(redirectPath, { replace: true })
+          // New users go to role selection
+          if (isNewUser) {
+            navigate(`/role-selection?token=${token}`, { replace: true })
+          }
+          // For returning users, wait for user to load (handled by second useEffect)
         }
       } catch {
         if (!cancelled) navigate('/login', { replace: true })
@@ -45,6 +47,18 @@ export default function OAuthSuccess() {
       cancelled = true
     }
   }, [token, isNewUser, loginWithToken, navigate])
+
+  // Listen for user changes to redirect based on role
+  useEffect(() => {
+    if (user && !isNewUser) {
+      // Redirect based on user role
+      if (user.role === 'ADMIN') {
+        navigate('/admin-panel', { replace: true })
+      } else {
+        navigate('/dashboard', { replace: true })
+      }
+    }
+  }, [user, isNewUser, navigate])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">

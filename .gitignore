@@ -46,3 +46,12 @@ backend/src/main/resources/application.properties
 # Logs
 *.log
 logs/
+
+#node modules
+node_modules/
+
+#json files
+*.json
+
+#json files in frontend
+frontend/*.json
