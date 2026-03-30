@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { FaBell, FaCog, FaUsers, FaBuilding, FaCalendarCheck, FaBullhorn, FaChartLine, FaSpinner } from 'react-icons/fa'
+import { useNavigate } from 'react-router-dom'
+import { FaBell, FaCog, FaUsers, FaBuilding, FaCalendarCheck, FaBullhorn, FaChartLine, FaSpinner, FaSignOutAlt } from 'react-icons/fa'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { getAdminStats } from '../services/adminService'
@@ -21,13 +22,19 @@ const TABS = [
 ]
 
 export default function AdminPanel() {
-  const { token } = useAuth()
+  const navigate = useNavigate()
+  const { token, logout } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   usePageTitle('Admin Panel')
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -92,6 +99,12 @@ export default function AdminPanel() {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
                 <FaCog className="w-4 h-4" />
                 Account Settings
+              </button>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                <FaSignOutAlt className="w-4 h-4" />
+                Logout
               </button>
             </div>
           </div>
