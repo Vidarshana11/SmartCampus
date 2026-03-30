@@ -1,0 +1,27 @@
+/* Notifications Panel */
+.notifications-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Reports Panel */
+.reports-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* System Settings */
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Audit Logs */
+.audit-logs-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}

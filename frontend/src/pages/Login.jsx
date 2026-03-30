@@ -20,8 +20,10 @@ export default function Login() {
     setError(null)
     setSubmitting(true)
     try {
-      await login({ email, password })
-      navigate('/dashboard', { replace: true })
+      const user = await login({ email, password })
+      // Redirect admins to admin panel, others to dashboard
+      const redirectPath = user?.role === 'ADMIN' ? '/admin-panel' : '/dashboard'
+      navigate(redirectPath, { replace: true })
     } catch (err) {
       setError(err?.response?.data?.error ?? err?.message ?? 'Login failed. Please check your credentials.')
     } finally {
