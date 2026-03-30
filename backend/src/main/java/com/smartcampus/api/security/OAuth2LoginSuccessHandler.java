@@ -32,7 +32,11 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String name = oAuth2User.getAttribute("name");
         String picture = oAuth2User.getAttribute("picture");
 
-        User user = userRepository.findByEmail(email).orElseGet(() -> {
+        // Check if user already exists to determine if this is a new user
+        var existingUser = userRepository.findByEmail(email);
+        boolean isNewUser = existingUser.isEmpty();
+
+        User user = existingUser.orElseGet(() -> {
             User newUser = new User();
             newUser.setEmail(email);
             newUser.setName(name != null ? name : email);
@@ -41,16 +45,16 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             return userRepository.save(newUser);
         });
 
-        // Update profile picture if changed
-        if (picture != null && !picture.equals(user.getProfilePictureUrl())) {
-            user.setProfilePictureUrl(picture);
+        // Only update name if it's null (preserve user's changes)
+        if (user.getName() == null && name != null) {
+            user.setName(name);
             userRepository.save(user);
         }
 
         String token = jwtService.generateToken(user);
 
-        // Redirect to React frontend with the JWT token
-        String frontendRedirectUrl = "http://localhost:5173/auth/success?token=" + token;
+        // Redirect to React frontend with the JWT token and isNewUser flag
+        String frontendRedirectUrl = "http://localhost:5173/auth/success?token=" + token + "&isNewUser=" + isNewUser;
         getRedirectStrategy().sendRedirect(request, response, frontendRedirectUrl);
     }
 }

@@ -112,6 +112,7 @@ public class AuthController {
         map.put("name", user.getName());
         map.put("role", user.getRole().name());
         map.put("profilePictureUrl", user.getProfilePictureUrl());
+        map.put("hasPassword", user.getPasswordHash() != null && !user.getPasswordHash().isEmpty());
         return map;
     }
 }
