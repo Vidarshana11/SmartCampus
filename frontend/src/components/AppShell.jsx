@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { getImageUrl } from '../api/apiClient'
 import Navbar from './Navbar'
 import {
   FaHome,
@@ -130,9 +131,17 @@ export default function AppShell({ children }) {
                   <div className="text-white text-sm font-medium">{userName}</div>
                   <div className="text-white/60 text-xs">{user?.role || 'Student'}</div>
                 </div>
-                <div className="w-9 h-9 bg-gradient-to-br from-[#c9a227] to-[#ffd700] rounded-full flex items-center justify-center text-[#003366] font-bold text-sm shadow-md">
-                  {userName.charAt(0).toUpperCase()}
-                </div>
+                {user?.profilePictureUrl ? (
+                  <img
+                    src={getImageUrl(user.profilePictureUrl)}
+                    alt={userName}
+                    className="w-9 h-9 rounded-full object-cover shadow-md border-2 border-[#c9a227]"
+                  />
+                ) : (
+                  <div className="w-9 h-9 bg-gradient-to-br from-[#c9a227] to-[#ffd700] rounded-full flex items-center justify-center text-[#003366] font-bold text-sm shadow-md">
+                    {userName.charAt(0).toUpperCase()}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -226,13 +235,19 @@ export default function AppShell({ children }) {
 
             {/* User Actions */}
             <div className="mt-6 pt-6 border-t border-gray-200 space-y-1">
-              <Link
-                to="#profile"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              <NavLink
+                to="/account"
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-[#003366] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`
+                }
               >
-                <FaUser className="w-5 h-5" />
-                My Profile
-              </Link>
+                <FaCog className="w-5 h-5" />
+                Account Settings
+              </NavLink>
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
