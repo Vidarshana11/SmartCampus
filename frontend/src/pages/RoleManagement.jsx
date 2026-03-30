@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
 import * as roleService from '../services/roleService'
+import { getImageUrl } from '../api/apiClient'
 import './RoleManagement.css'
 
 const ROLES = [
@@ -175,7 +176,7 @@ export default function RoleManagement() {
                     <div className="user-cell">
                       {user.profilePictureUrl ? (
                         <img
-                          src={user.profilePictureUrl}
+                          src={getImageUrl(user.profilePictureUrl)}
                           alt={user.name}
                           className="user-avatar"
                         />
