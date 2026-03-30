@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -112,16 +113,26 @@ public class RoleManagementController {
     /**
      * PUT /api/users/{id}/role - Update user role
      * Member 4: PUT endpoint for role assignment
+     * Allows ADMIN to change any user's role, or new users (with USER role) to set their role once during initial signup
      */
     @PutMapping("/users/{id}/role")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDTO> updateUserRole(
             @PathVariable Long id,
-            @Valid @RequestBody RoleUpdateRequest request) {
+            @Valid @RequestBody RoleUpdateRequest request,
+            @AuthenticationPrincipal User currentUser) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
 
-        // Prevent changing own role (safety measure)
+        // Allow users to change their role only if they have the default USER role (new users during signup)
+        boolean isAdmin = currentUser.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+        boolean isNewUser = user.getRole() == Role.USER && currentUser.getId().equals(id);
+
+        if (!isAdmin && !isNewUser) {
+            throw new AccessDeniedException("Users can only change their role during initial signup");
+        }
+
         user.setRole(request.role());
         User updatedUser = userRepository.save(user);
 

@@ -5,9 +5,11 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import OAuthSuccess from './pages/OAuthSuccess'
+import RoleSelection from './pages/RoleSelection'
 import Dashboard from './pages/Dashboard'
 import AdminPanel from './pages/AdminPanel'
 import RoleManagement from './pages/RoleManagement'
+import AccountManagement from './pages/AccountManagement'
 import NotFound from './pages/NotFound'
 
 function RequireAuth({ children, roles }) {
@@ -52,12 +54,22 @@ export default function AppRouter() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/auth/success" element={<OAuthSuccess />} />
+          <Route path="/role-selection" element={<RoleSelection />} />
 
           <Route
             path="/dashboard"
             element={
               <ProtectedShell>
                 <Dashboard />
+              </ProtectedShell>
+            }
+          />
+
+          <Route
+            path="/account"
+            element={
+              <ProtectedShell>
+                <AccountManagement />
               </ProtectedShell>
             }
           />

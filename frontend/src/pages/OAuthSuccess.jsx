@@ -15,6 +15,11 @@ export default function OAuthSuccess() {
     return params.get('token')
   }, [location.search])
 
+  const isNewUser = useMemo(() => {
+    const params = new URLSearchParams(location.search)
+    return params.get('isNewUser') === 'true'
+  }, [location.search])
+
   useEffect(() => {
     let cancelled = false
 
@@ -25,7 +30,11 @@ export default function OAuthSuccess() {
       }
       try {
         await loginWithToken(token)
-        if (!cancelled) navigate('/dashboard', { replace: true })
+        if (!cancelled) {
+          // New users go to role selection, returning users go to dashboard
+          const redirectPath = isNewUser ? `/role-selection?token=${token}` : '/dashboard'
+          navigate(redirectPath, { replace: true })
+        }
       } catch {
         if (!cancelled) navigate('/login', { replace: true })
       }
@@ -35,7 +44,7 @@ export default function OAuthSuccess() {
     return () => {
       cancelled = true
     }
-  }, [token, loginWithToken, navigate])
+  }, [token, isNewUser, loginWithToken, navigate])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">

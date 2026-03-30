@@ -93,7 +93,12 @@ export function AuthProvider({ children }) {
       register,
       loginWithToken,
       logout,
-      refreshMe: async () => (token ? fetchMe(token) : null),
+      refreshMe: async () => {
+        if (!token) return null
+        const me = await fetchMe(token)
+        setUser(me)
+        return me
+      },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [token, user, loading]
