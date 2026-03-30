@@ -68,8 +68,9 @@ export const getUsersByRole = async (token, role, { page = 0, size = 20 } = {}) 
 }
 
 /**
- * Update user role (Admin only)
+ * Update user role (Admin only after initial signup)
  * PUT /api/users/{id}/role
+ * New users can set their role once during account creation, then it's locked
  */
 export const updateUserRole = async (token, userId, role) => {
   const res = await apiClient.put(`/api/users/${userId}/role`, { role }, {
@@ -97,4 +98,54 @@ export const deleteUser = async (token, userId) => {
   await apiClient.delete(`/api/users/${userId}`, {
     headers: getAuthHeader(token),
   })
+}
+
+/**
+ * Upload profile picture
+ * POST /api/users/{id}/upload-profile-picture
+ */
+export const uploadProfilePicture = async (token, userId, file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const res = await apiClient.post(`/api/users/${userId}/upload-profile-picture`, formData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+  return res.data
+}
+
+/**
+ * Delete profile picture
+ * DELETE /api/users/{id}/profile-picture
+ */
+export const deleteProfilePicture = async (token, userId) => {
+  const res = await apiClient.delete(`/api/users/${userId}/profile-picture`, {
+    headers: getAuthHeader(token),
+  })
+  return res.data
+}
+
+/**
+ * Change password
+ * POST /api/users/{id}/change-password
+ */
+export const changePassword = async (token, userId, { currentPassword, newPassword }) => {
+  const res = await apiClient.post(`/api/users/${userId}/change-password`, { currentPassword, newPassword }, {
+    headers: getAuthHeader(token),
+  })
+  return res.data
+}
+
+/**
+ * Delete user account (self-service)
+ * DELETE /api/users/{id}/delete-account
+ */
+export const deleteAccount = async (token, userId) => {
+  const res = await apiClient.delete(`/api/users/${userId}/delete-account`, {
+    headers: getAuthHeader(token),
+  })
+  return res.data
 }
