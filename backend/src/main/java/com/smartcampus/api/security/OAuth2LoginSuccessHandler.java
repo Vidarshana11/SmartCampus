@@ -51,6 +51,12 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             userRepository.save(user);
         }
 
+        // Only update profile picture if it's null (preserve user's custom photo)
+        if (user.getProfilePictureUrl() == null && picture != null) {
+            user.setProfilePictureUrl(picture);
+            userRepository.save(user);
+        }
+
         String token = jwtService.generateToken(user);
 
         // Redirect to React frontend with the JWT token and isNewUser flag
