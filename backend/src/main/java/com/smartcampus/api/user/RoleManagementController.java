@@ -116,7 +116,7 @@ public class RoleManagementController {
      * Allows ADMIN to change any user's role, or new users (with USER role) to set their role once during initial signup
      */
     @PutMapping("/users/{id}/role")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserDTO> updateUserRole(
             @PathVariable Long id,
             @Valid @RequestBody RoleUpdateRequest request,

@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { updateUserRole } from '../services/roleService'
-import { FaGraduationCap, FaBook, FaTools } from 'react-icons/fa'
+import { FaGraduationCap, FaBook, FaTools, FaSpinner } from 'react-icons/fa'
 import '../styles/RoleSelection.css'
 
 const ROLE_OPTIONS = [
@@ -30,7 +30,7 @@ const ROLE_OPTIONS = [
 export default function RoleSelection() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, token } = useAuth()
+  const { user, token, loading: authLoading } = useAuth()
   const [selectedRole, setSelectedRole] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -45,6 +45,24 @@ export default function RoleSelection() {
 
   const authToken = token || urlToken
 
+  // Wait for user data to load
+  useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
+    if (!user) {
+      console.error('User not found, redirecting to login')
+      navigate('/login', { replace: true })
+    }
+  }, [authLoading, user, navigate])
+
+  // Clear error when role is selected
+  const handleRoleChange = (role) => {
+    setSelectedRole(role)
+    setError('') // Clear error when user selects a role
+  }
+
   // Handle role selection
   const handleSelectRole = async () => {
     if (!selectedRole) {
@@ -57,19 +75,44 @@ export default function RoleSelection() {
       return
     }
 
+    if (!authToken) {
+      setError('Authentication token missing')
+      return
+    }
+
     try {
       setLoading(true)
       setError('')
 
+      console.log('Updating role for user:', user.id, 'to:', selectedRole)
+
       // Update user role
       await updateUserRole(authToken, user.id, selectedRole)
+
+      console.log('Role updated successfully')
 
       // Redirect to dashboard on success
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to set role. Please try again.')
+      console.error('Failed to update role:', err)
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to set role. Please try again.'
+      setError(errorMsg)
       setLoading(false)
     }
+  }
+
+  // Show loading while user data is being fetched
+  if (authLoading) {
+    return (
+      <div className="role-selection-container">
+        <div className="role-selection-card">
+          <div className="flex items-center justify-center gap-3">
+            <FaSpinner className="w-5 h-5 animate-spin text-blue-600" />
+            <p className="text-gray-700 font-medium">Loading your account...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -92,7 +135,7 @@ export default function RoleSelection() {
                   name="role"
                   value={option.id}
                   checked={selectedRole === option.id}
-                  onChange={(e) => setSelectedRole(e.target.value)}
+                  onChange={(e) => handleRoleChange(e.target.value)}
                   disabled={loading}
                 />
                 <div className="role-option-content">
