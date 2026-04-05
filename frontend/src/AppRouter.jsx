@@ -11,6 +11,7 @@ import AdminLayout from './components/admin/AdminLayout'
 import AdminPanel from './pages/AdminPanel'
 import RoleManagement from './pages/RoleManagement'
 import AccountManagement from './pages/AccountManagement'
+import Notifications from './pages/Notifications'
 import NotFound from './pages/NotFound'
 
 function RequireAuth({ children, roles }) {
@@ -71,6 +72,15 @@ export default function AppRouter() {
             element={
               <ProtectedShell>
                 <AccountManagement />
+              </ProtectedShell>
+            }
+          />
+
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedShell>
+                <Notifications />
               </ProtectedShell>
             }
           />

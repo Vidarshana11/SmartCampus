@@ -1,7 +1,10 @@
 package com.smartcampus.api.notification;
 
+import com.smartcampus.api.user.Role;
 import com.smartcampus.api.user.User;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -145,22 +148,117 @@ public class NotificationController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> broadcastNotification(
             @Valid @RequestBody BroadcastNotificationRequest request) {
-        // Implementation would iterate through all users
-        // For now, return success
+        NotificationType type = request.type() != null ? request.type() : NotificationType.INFO;
+        NotificationCategory category = request.category() != null
+                ? request.category()
+                : NotificationCategory.SYSTEM;
+
+        // Convert string roles to Role enums
+        List<Role> targetRoles = convertStringToRoles(request.targetRoles());
+
+        int recipientCount = notificationService.broadcastNotification(
+                request.title(),
+                request.message(),
+                type,
+                category,
+                targetRoles
+        );
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(Map.of("message", "Broadcast sent successfully"));
+                .body(Map.of(
+                        "message", "Broadcast sent successfully",
+                        "recipientCount", String.valueOf(recipientCount)
+                ));
+    }
+
+    /**
+     * POST /api/notifications/admin/announcements - Create announcement for selected roles
+     * Admin can target specific roles, or all users if roles are omitted.
+     */
+    @PostMapping("/admin/announcements")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> createAnnouncement(
+            @Valid @RequestBody AnnouncementRequest request) {
+        try {
+            List<Role> targetRoles = convertStringToRoles(request.targetRoles());
+
+            int recipientCount = notificationService.broadcastNotification(
+                    request.title(),
+                    request.message(),
+                    NotificationType.INFO,
+                    NotificationCategory.SYSTEM,
+                    targetRoles
+            );
+
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of(
+                            "message", "Announcement sent successfully",
+                            "recipientCount", String.valueOf(recipientCount)
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "message", "Error: " + e.getMessage()
+                    ));
+        }
     }
 
     // DTOs
     public record SystemNotificationRequest(
+            @NotNull(message = "User ID is required")
             Long userId,
+
+            @NotBlank(message = "Title is required")
             String title,
+
+            @NotBlank(message = "Message is required")
             String message
     ) {}
 
     public record BroadcastNotificationRequest(
+            @NotBlank(message = "Title is required")
             String title,
+
+            @NotBlank(message = "Message is required")
             String message,
-            NotificationType type
+
+            NotificationType type,
+
+            NotificationCategory category,
+
+            List<Object> targetRoles
     ) {}
+
+    public record AnnouncementRequest(
+            @NotBlank(message = "Title is required")
+            String title,
+
+            @NotBlank(message = "Message is required")
+            String message,
+
+            List<Object> targetRoles
+    ) {}
+
+    /**
+     * Helper method to convert targetRoles from Object/String to Role enum
+     */
+    private List<Role> convertStringToRoles(List<Object> roleObjects) {
+        if (roleObjects == null || roleObjects.isEmpty()) {
+            return List.of();
+        }
+
+        return roleObjects.stream()
+                .map(role -> {
+                    try {
+                        if (role instanceof Role) {
+                            return (Role) role;
+                        }
+                        return Role.valueOf(role.toString().toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(role -> role != null)
+                .toList();
+    }
 }
