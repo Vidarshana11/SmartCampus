@@ -22,7 +22,7 @@ public class Notification {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
 
     @Column(nullable = false)
@@ -43,6 +43,19 @@ public class Notification {
     @Builder.Default
     private boolean isRead = false;
 
+    @Column(name = "is_enabled", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    @Builder.Default
+    private boolean isEnabled = true;
+
+    @Column(name = "campaign_id", length = 64)
+    private String campaignId;
+
+    @Column(name = "target_roles", length = 255)
+    private String targetRoles;
+
+    @Column(name = "recipient_count")
+    private Integer recipientCount;
+
     @Column(name = "related_entity_id")
     private Long relatedEntityId;
 
@@ -52,11 +65,24 @@ public class Notification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (updatedAt == null) {
+            updatedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }
