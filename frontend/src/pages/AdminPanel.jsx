@@ -1,9 +1,30 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FaBell, FaCog, FaUsers, FaBuilding, FaCalendarCheck, FaBullhorn, FaChartLine, FaSpinner, FaSignOutAlt } from 'react-icons/fa'
+import {
+  FaBell,
+  FaCog,
+  FaUsers,
+  FaBuilding,
+  FaCalendarCheck,
+  FaBullhorn,
+  FaChartLine,
+  FaSpinner,
+  FaSignOutAlt,
+  FaEdit,
+  FaTimes,
+  FaTrash,
+  FaToggleOff,
+  FaToggleOn,
+} from 'react-icons/fa'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { getAdminStats } from '../services/adminService'
+import {
+  deleteAdminNotificationHistory,
+  getAnnouncementUrgencyMeta,
+  getAdminNotificationHistory,
+  updateAdminNotificationHistory,
+} from '../services/notificationService'
 import UserManagementTab from '../components/admin/UserManagementTab'
 import ResourceManagementTab from '../components/admin/ResourceManagementTab'
 import BookingManagementTab from '../components/admin/BookingManagementTab'
@@ -28,6 +49,13 @@ export default function AdminPanel() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [notificationsError, setNotificationsError] = useState('')
+  const [notificationHistory, setNotificationHistory] = useState([])
+  const [editingNotificationId, setEditingNotificationId] = useState(null)
+  const [editDraft, setEditDraft] = useState({ title: '', message: '' })
+  const [savingCampaignId, setSavingCampaignId] = useState(null)
 
   usePageTitle('Admin Panel')
 
@@ -57,6 +85,132 @@ export default function AdminPanel() {
       fetchStats()
     }
   }, [token])
+
+  const fetchNotificationHistory = async () => {
+    if (!token) return
+
+    try {
+      setNotificationsLoading(true)
+      setNotificationsError('')
+      const history = await getAdminNotificationHistory(token)
+      setNotificationHistory(history)
+    } catch (err) {
+      console.error('Failed to load notification history:', err)
+      setNotificationsError('Failed to load notifications')
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }
+
+  const handleOpenNotifications = async () => {
+    setNotificationsOpen(true)
+    await fetchNotificationHistory()
+  }
+
+  const handleCloseNotifications = () => {
+    setNotificationsOpen(false)
+    setEditingNotificationId(null)
+    setEditDraft({ title: '', message: '' })
+  }
+
+  const handleToggleNotification = async (notification) => {
+    try {
+      setSavingCampaignId(notification.campaignId)
+      const updated = await updateAdminNotificationHistory(
+        token,
+        notification.campaignId,
+        { enabled: !notification.isEnabled }
+      )
+      setNotificationHistory((previous) =>
+        previous.map((item) => (
+          item.campaignId === notification.campaignId ? updated : item
+        ))
+      )
+      setNotificationsError('')
+    } catch (err) {
+      console.error('Failed to toggle notification:', err)
+      setNotificationsError(
+        err?.response?.data?.error || err?.response?.data?.message || 'Failed to update notification status'
+      )
+    } finally {
+      setSavingCampaignId(null)
+    }
+  }
+
+  const handleEditStart = (notification) => {
+    setEditingNotificationId(notification.campaignId)
+    setEditDraft({
+      title: notification.title,
+      message: notification.message,
+    })
+  }
+
+  const handleEditSave = async (notification) => {
+    if (!editDraft.title.trim() || !editDraft.message.trim()) return
+    try {
+      setSavingCampaignId(notification.campaignId)
+      const updated = await updateAdminNotificationHistory(
+        token,
+        notification.campaignId,
+        {
+          title: editDraft.title.trim(),
+          message: editDraft.message.trim(),
+        }
+      )
+      setNotificationHistory((previous) =>
+        previous.map((item) => (
+          item.campaignId === notification.campaignId ? updated : item
+        ))
+      )
+      setNotificationsError('')
+      setEditingNotificationId(null)
+      setEditDraft({ title: '', message: '' })
+    } catch (err) {
+      console.error('Failed to edit notification:', err)
+      setNotificationsError(
+        err?.response?.data?.error || err?.response?.data?.message || 'Failed to save notification changes'
+      )
+    } finally {
+      setSavingCampaignId(null)
+    }
+  }
+
+  const handleEditCancel = () => {
+    setEditingNotificationId(null)
+    setEditDraft({ title: '', message: '' })
+  }
+
+  const handleDeleteNotification = async (notification) => {
+    const shouldDelete = window.confirm(
+      'Delete this past notification for all recipients? This action cannot be undone.'
+    )
+    if (!shouldDelete) return
+
+    try {
+      setSavingCampaignId(notification.campaignId)
+      await deleteAdminNotificationHistory(token, notification.campaignId)
+      setNotificationHistory((previous) =>
+        previous.filter((item) => item.campaignId !== notification.campaignId)
+      )
+      setNotificationsError('')
+      if (editingNotificationId === notification.campaignId) {
+        setEditingNotificationId(null)
+        setEditDraft({ title: '', message: '' })
+      }
+    } catch (err) {
+      console.error('Failed to delete notification:', err)
+      setNotificationsError(
+        err?.response?.data?.error || err?.response?.data?.message || 'Failed to delete notification'
+      )
+    } finally {
+      setSavingCampaignId(null)
+    }
+  }
+
+  const formatNotificationTime = (dateString) => {
+    if (!dateString) return ''
+    return new Date(dateString).toLocaleString()
+  }
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -90,7 +244,9 @@ export default function AdminPanel() {
               <p className="text-gray-600 mt-1">Manage campus operations, users, and resources</p>
             </div>
             <div className="flex gap-3">
-              <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+              <button
+                onClick={handleOpenNotifications}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
                 <FaBell className="w-4 h-4" />
                 Notifications
               </button>
@@ -138,6 +294,160 @@ export default function AdminPanel() {
 
       {/* Tab Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">{renderTabContent()}</div>
+
+      {/* Notifications History Modal */}
+      {notificationsOpen && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/45 flex items-center justify-center px-4"
+          onClick={handleCloseNotifications}
+        >
+          <div
+            className="w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Past Notifications</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  View previous notifications and manage enable/disable and edit state.
+                </p>
+              </div>
+              <button
+                onClick={handleCloseNotifications}
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Close notifications"
+              >
+                <FaTimes className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto p-6 space-y-4">
+              {notificationsLoading && (
+                <div className="text-sm text-gray-600 flex items-center gap-2">
+                  <FaSpinner className="w-4 h-4 animate-spin" />
+                  Loading notifications...
+                </div>
+              )}
+
+              {!notificationsLoading && notificationsError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                  {notificationsError}
+                </div>
+              )}
+
+              {!notificationsLoading && !notificationsError && notificationHistory.length === 0 && (
+                <div className="p-4 rounded-lg bg-gray-50 text-sm text-gray-600">
+                  No past notifications found.
+                </div>
+              )}
+
+              {!notificationsLoading && !notificationsError && notificationHistory.map((notification) => {
+                const urgencyMeta = getAnnouncementUrgencyMeta(notification.type)
+                return (
+                <article
+                  key={notification.campaignId}
+                  className={`rounded-lg border p-4 transition ${
+                    notification.isEnabled
+                      ? 'border-blue-200 bg-blue-50/30'
+                      : 'border-gray-200 bg-gray-100/70 opacity-80'
+                  }`}
+                >
+                  {editingNotificationId === notification.campaignId ? (
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={editDraft.title}
+                        onChange={(event) => setEditDraft((prev) => ({ ...prev, title: event.target.value }))}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                        placeholder="Notification title"
+                      />
+                      <textarea
+                        value={editDraft.message}
+                        onChange={(event) => setEditDraft((prev) => ({ ...prev, message: event.target.value }))}
+                        rows={3}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-vertical"
+                        placeholder="Notification message"
+                      />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditSave(notification)}
+                          disabled={savingCampaignId === notification.campaignId}
+                          className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-60"
+                        >
+                          {savingCampaignId === notification.campaignId ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={handleEditCancel}
+                          className="px-3 py-1.5 rounded-lg bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{notification.title}</h3>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {formatNotificationTime(notification.createdAt)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${urgencyMeta.chipClass}`}>
+                            {urgencyMeta.label}
+                          </span>
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-white border border-gray-200 text-gray-700">
+                            Announcement
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap">{notification.message}</p>
+
+                      <div className="mt-4 flex items-center gap-3">
+                        <button
+                          onClick={() => handleToggleNotification(notification)}
+                          disabled={savingCampaignId === notification.campaignId}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                            notification.isEnabled
+                              ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          } disabled:opacity-60`}
+                        >
+                          {notification.isEnabled ? (
+                            <FaToggleOn className="w-4 h-4" />
+                          ) : (
+                            <FaToggleOff className="w-4 h-4" />
+                          )}
+                          {notification.isEnabled ? 'Enabled' : 'Disabled'}
+                        </button>
+                        <button
+                          onClick={() => handleEditStart(notification)}
+                          disabled={savingCampaignId === notification.campaignId}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-60"
+                        >
+                          <FaEdit className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteNotification(notification)}
+                          disabled={savingCampaignId === notification.campaignId}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-60"
+                        >
+                          <FaTrash className="w-3.5 h-3.5" />
+                          Delete
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </article>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

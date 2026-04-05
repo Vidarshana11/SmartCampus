@@ -15,12 +15,28 @@
   transition: background 0.2s;
 }
 
-.notification-bell:hover {
-  background: rgba(0, 0, 0, 0.05);
+.notification-bell-wrapper {
+  position: relative;
+}
+
+.notification-bell.light {
+  color: #f8fafc;
+}
+
+.notification-bell.light:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.notification-bell.dark {
+  color: #334155;
+}
+
+.notification-bell.dark:hover {
+  background: rgba(15, 23, 42, 0.08);
 }
 
 .notification-bell svg {
-  color: #374151;
+  color: currentColor;
 }
 
 .notification-badge {
@@ -38,16 +54,18 @@
 }
 
 .notification-error {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
   background: #fee2e2;
   color: #dc2626;
-  padding: 0.75rem 1rem;
+  padding: 0.55rem 0.7rem;
   border-radius: 0.375rem;
-  font-size: 0.875rem;
-  z-index: 1100;
+  font-size: 0.75rem;
+  z-index: 1400;
   animation: fadeIn 0.2s ease-out;
+  border: 1px solid #fecaca;
+  max-width: min(280px, 75vw);
 }
 
 @keyframes fadeIn {
