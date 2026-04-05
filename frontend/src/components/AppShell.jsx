@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { getImageUrl } from '../api/apiClient'
 import Navbar from './Navbar'
+import NotificationBell from './notifications/NotificationBell'
 import {
   FaHome,
   FaCalendarAlt,
   FaBook,
   FaTicketAlt,
-  FaBell,
   FaCog,
   FaSignOutAlt,
   FaUser,
@@ -21,7 +21,6 @@ import {
 export default function AppShell({ children }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
 
@@ -38,11 +37,6 @@ export default function AppShell({ children }) {
     navigate('/', { replace: true })
   }
 
-  // Close sidebar when route changes on mobile
-  useEffect(() => {
-    setSidebarOpen(false)
-  }, [location.pathname])
-
   const mainNavItems = [
     { to: '/dashboard', label: 'Dashboard', icon: FaHome },
     { to: '#schedule', label: 'My Schedule', icon: FaCalendarAlt },
@@ -57,7 +51,7 @@ export default function AppShell({ children }) {
   ]
 
   const adminNavItems = isAdmin
-    ? [{ to: '/admin', label: 'Admin Panel', icon: FaCog }]
+    ? [{ to: '/admin-panel', label: 'Admin Panel', icon: FaCog }]
     : []
 
   const formatDate = (date) => {
@@ -120,10 +114,7 @@ export default function AppShell({ children }) {
             {/* Right: User Actions */}
             <div className="flex items-center gap-2 sm:gap-4">
               {/* Notifications */}
-              <button className="relative p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
-                <FaBell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+              <NotificationBell />
 
               {/* User Profile */}
               <div className="flex items-center gap-3">

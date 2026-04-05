@@ -7,7 +7,6 @@ import Register from './pages/Register'
 import OAuthSuccess from './pages/OAuthSuccess'
 import RoleSelection from './pages/RoleSelection'
 import Dashboard from './pages/Dashboard'
-import AdminLayout from './components/admin/AdminLayout'
 import AdminPanel from './pages/AdminPanel'
 import RoleManagement from './pages/RoleManagement'
 import AccountManagement from './pages/AccountManagement'
@@ -79,7 +78,7 @@ export default function AppRouter() {
             path="/admin"
             element={
               <RequireAuth roles={['ADMIN']}>
-                <AdminLayout />
+                <AdminPanel />
               </RequireAuth>
             }
           />
@@ -109,4 +108,3 @@ export default function AppRouter() {
     </AuthProvider>
   )
 }
-

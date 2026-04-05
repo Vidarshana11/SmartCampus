@@ -38,7 +38,7 @@ export default function Navbar() {
   ]
 
   if (isAdmin) {
-    navLinks.push({ to: '/admin', label: 'Admin', icon: FaCog })
+    navLinks.push({ to: '/admin-panel', label: 'Admin', icon: FaCog })
     navLinks.push({ to: '/role-management', label: 'Roles', icon: FaUsers })
   }
 

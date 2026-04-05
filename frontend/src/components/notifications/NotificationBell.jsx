@@ -1,65 +1,135 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../auth/AuthProvider'
-import { getUnreadCount } from '../../services/notificationService'
-import NotificationPanel from './NotificationPanel'
+import {
+  getNotifications,
+  isRegularNotification,
+  markAsRead,
+} from '../../services/notificationService'
+import NotificationDropdown from '../NotificationDropdown'
 import './NotificationBell.css'
 
 /**
  * Member 4: Notification Bell Component
- * Shows unread count and opens notification panel
+ * Shows unread count and opens recent notifications dropdown
  */
-export default function NotificationBell() {
+export default function NotificationBell({ tone = 'light' }) {
   const { token, user } = useAuth()
   const [unreadCount, setUnreadCount] = useState(0)
-  const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [recentNotifications, setRecentNotifications] = useState([])
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [markAllCandidateIds, setMarkAllCandidateIds] = useState([])
+  const dropdownRef = useRef(null)
+  const RECENT_LIMIT = 6
+  const FETCH_LIMIT = 100
 
-  // Fetch unread count on mount and periodically
-  useEffect(() => {
+  const syncNotifications = useCallback(async (showLoading = false) => {
     if (!token || !user) return
+    if (showLoading) setLoading(true)
 
-    const fetchUnreadCount = async () => {
-      try {
-        const count = await getUnreadCount(token)
-        setUnreadCount(count)
-      } catch (err) {
-        console.error('Error fetching unread count:', err)
-        setError('Failed to fetch notifications')
+    try {
+      const data = await getNotifications(token, { page: 0, size: FETCH_LIMIT })
+      const allNotifications = Array.isArray(data?.notifications) ? data.notifications : []
+      const regularNotifications = allNotifications.filter(isRegularNotification)
+      const unreadRegularIds = regularNotifications
+        .filter((notification) => !notification.isRead)
+        .map((notification) => notification.id)
+
+      setRecentNotifications(regularNotifications.slice(0, RECENT_LIMIT))
+      setUnreadCount(unreadRegularIds.length)
+      setMarkAllCandidateIds(unreadRegularIds)
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching notifications:', err)
+      setError('Failed to fetch notifications')
+    } finally {
+      if (showLoading) setLoading(false)
+    }
+  }, [token, user])
+
+  useEffect(() => {
+    if (!token || !user) {
+      setRecentNotifications([])
+      setUnreadCount(0)
+      setMarkAllCandidateIds([])
+      setIsDropdownOpen(false)
+      return undefined
+    }
+
+    syncNotifications(true)
+    const interval = setInterval(() => syncNotifications(false), 30000)
+    return () => clearInterval(interval)
+  }, [token, user, syncNotifications])
+
+  useEffect(() => {
+    if (!isDropdownOpen) return undefined
+
+    const handleOutsideClick = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false)
+      }
+    }
+    const handleEsc = (event) => {
+      if (event.key === 'Escape') {
+        setIsDropdownOpen(false)
       }
     }
 
-    // Initial fetch
-    fetchUnreadCount()
+    document.addEventListener('mousedown', handleOutsideClick)
+    document.addEventListener('keydown', handleEsc)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }, [isDropdownOpen])
 
-    // Poll every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000)
-
-    return () => clearInterval(interval)
-  }, [token, user])
-
-  const handleBellClick = () => {
-    setIsPanelOpen(true)
-    // Reset unread count locally when opening
-    setUnreadCount(0)
+  const handleBellClick = async () => {
+    const opening = !isDropdownOpen
+    setIsDropdownOpen(opening)
+    if (opening) {
+      await syncNotifications(true)
+    }
   }
 
-  const handlePanelClose = () => {
-    setIsPanelOpen(false)
-    // Refresh unread count after closing panel
-    if (token) {
-      getUnreadCount(token)
-        .then(setUnreadCount)
-        .catch(console.error)
+  const handleNotificationClick = async (notification) => {
+    if (notification.isRead) return
+
+    try {
+      await markAsRead(token, notification.id)
+      setRecentNotifications((prev) => prev.map((item) => (
+        item.id === notification.id ? { ...item, isRead: true, readAt: new Date().toISOString() } : item
+      )))
+      setUnreadCount((prev) => Math.max(0, prev - 1))
+      setMarkAllCandidateIds((prev) => prev.filter((id) => id !== notification.id))
+    } catch (err) {
+      console.error('Error marking notification as read:', err)
+      setError('Failed to update notification')
+    }
+  }
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      if (markAllCandidateIds.length === 0) return
+      await Promise.all(markAllCandidateIds.map((id) => markAsRead(token, id)))
+      setRecentNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })))
+      setUnreadCount(0)
+      setMarkAllCandidateIds([])
+      setError(null)
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err)
+      setError('Failed to mark all notifications as read')
     }
   }
 
   if (!user) return null
 
   return (
-    <>
+    <div className="notification-bell-wrapper" ref={dropdownRef}>
       <button
-        className="notification-bell"
+        className={`notification-bell ${tone === 'dark' ? 'dark' : 'light'}`}
         onClick={handleBellClick}
+        aria-expanded={isDropdownOpen}
         aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
       >
         <svg
@@ -83,16 +153,20 @@ export default function NotificationBell() {
         )}
       </button>
 
+      <NotificationDropdown
+        isOpen={isDropdownOpen}
+        loading={loading}
+        notifications={recentNotifications}
+        unreadCount={unreadCount}
+        onNotificationClick={handleNotificationClick}
+        onMarkAllAsRead={handleMarkAllAsRead}
+      />
+
       {error && (
         <div className="notification-error" role="alert">
           {error}
         </div>
       )}
-
-      <NotificationPanel
-        isOpen={isPanelOpen}
-        onClose={handlePanelClose}
-      />
-    </>
+    </div>
   )
 }

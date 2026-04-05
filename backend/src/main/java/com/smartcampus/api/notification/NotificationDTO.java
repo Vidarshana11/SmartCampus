@@ -9,9 +9,12 @@ public record NotificationDTO(
         NotificationType type,
         NotificationCategory category,
         boolean isRead,
+        boolean isEnabled,
+        String campaignId,
         Long relatedEntityId,
         String relatedEntityType,
         LocalDateTime createdAt,
+        LocalDateTime updatedAt,
         LocalDateTime readAt
 ) {
     public static NotificationDTO fromEntity(Notification notification) {
@@ -22,9 +25,12 @@ public record NotificationDTO(
                 notification.getType(),
                 notification.getCategory(),
                 notification.isRead(),
+                notification.isEnabled(),
+                notification.getCampaignId(),
                 notification.getRelatedEntityId(),
                 notification.getRelatedEntityType(),
                 notification.getCreatedAt(),
+                notification.getUpdatedAt(),
                 notification.getReadAt()
         );
     }

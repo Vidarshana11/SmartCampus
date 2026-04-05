@@ -1,22 +1,22 @@
 import { useState } from 'react'
 import { FaCheck, FaTimes, FaSpinner } from 'react-icons/fa'
+import { ANNOUNCEMENT_URGENCY, createAnnouncement } from '../../services/notificationService'
 
 const URGENCY_LEVELS = [
-  { value: 'NORMAL', label: 'Normal', color: 'bg-blue-100 text-blue-800' },
-  { value: 'IMPORTANT', label: 'Important', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'URGENT', label: 'Urgent', color: 'bg-red-100 text-red-800' },
+  { value: ANNOUNCEMENT_URGENCY.NORMAL, label: 'Normal', color: 'bg-blue-100 text-blue-800' },
+  { value: ANNOUNCEMENT_URGENCY.IMPORTANT, label: 'Important', color: 'bg-amber-100 text-amber-800' },
+  { value: ANNOUNCEMENT_URGENCY.URGENT, label: 'Urgent', color: 'bg-red-100 text-red-800' },
 ]
 
 export default function AnnouncementsTab({ token }) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [urgency, setUrgency] = useState('NORMAL')
+  const [urgency, setUrgency] = useState(ANNOUNCEMENT_URGENCY.NORMAL)
   const [recipientType, setRecipientType] = useState('all')
   const [selectedRoles, setSelectedRoles] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
-  const [announcements, setAnnouncements] = useState([])
 
   const handleRoleToggle = (role) => {
     setSelectedRoles((prev) =>
@@ -30,40 +30,42 @@ export default function AnnouncementsTab({ token }) {
       return
     }
 
+    if (recipientType === 'roles' && selectedRoles.length === 0) {
+      setError('Please select at least one role')
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
       setSuccess(null)
 
-      // Create announcement object
-      const announcement = {
-        id: Date.now(),
-        title,
-        content,
+      const payload = {
+        title: title.trim(),
+        message: content.trim(),
         urgency,
-        sentAt: new Date().toLocaleString(),
-        sentTo:
-          recipientType === 'roles'
-            ? selectedRoles.length > 0
-              ? selectedRoles.join(', ')
-              : 'No roles selected'
-            : 'All users',
+        targetRoles: recipientType === 'roles' ? selectedRoles : [],
       }
 
-      // Add to announcements list (local storage only)
-      setAnnouncements((prev) => [announcement, ...prev])
+      const response = await createAnnouncement(token, payload)
+      const recipientCount = Number(response?.recipientCount ?? 0)
 
-      setSuccess('Announcement created successfully')
+      setSuccess(`Announcement created and sent to ${recipientCount} user(s)`)
       setTitle('')
       setContent('')
-      setUrgency('NORMAL')
+      setUrgency(ANNOUNCEMENT_URGENCY.NORMAL)
       setRecipientType('all')
       setSelectedRoles([])
 
       setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
       console.error('Failed to create announcement:', err)
-      setError('Failed to create announcement. Please try again.')
+      setError(
+        err?.response?.data?.error
+        || err?.response?.data?.message
+        || err?.message
+        || 'Failed to create announcement. Please try again.'
+      )
     } finally {
       setLoading(false)
     }
@@ -209,6 +211,24 @@ export default function AnnouncementsTab({ token }) {
                 />
                 <span className="text-gray-900 font-medium">Managers</span>
               </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedRoles.includes('ADMIN')}
+                  onChange={() => handleRoleToggle('ADMIN')}
+                  className="w-4 h-4 accent-blue-600"
+                />
+                <span className="text-gray-900 font-medium">Admins</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedRoles.includes('USER')}
+                  onChange={() => handleRoleToggle('USER')}
+                  className="w-4 h-4 accent-blue-600"
+                />
+                <span className="text-gray-900 font-medium">Users (Default)</span>
+              </label>
             </div>
           )}
         </div>
@@ -228,47 +248,6 @@ export default function AnnouncementsTab({ token }) {
             'Create Announcement'
           )}
         </button>
-      </div>
-
-      {/* Announcement History */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="border-b border-gray-200 px-6 py-4 bg-gray-50">
-          <h3 className="text-lg font-semibold text-gray-900">Recent Announcements</h3>
-        </div>
-
-        {announcements.length === 0 ? (
-          <div className="px-6 py-8 text-center text-gray-500">No announcements yet</div>
-        ) : (
-          <div className="divide-y divide-gray-200">
-            {announcements.map((announcement) => (
-              <div key={announcement.id} className="px-6 py-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h4 className="font-semibold text-gray-900">{announcement.title}</h4>
-                      <span
-                        className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          URGENCY_LEVELS.find((l) => l.value === announcement.urgency)?.color
-                        }`}
-                      >
-                        {announcement.urgency}
-                      </span>
-                    </div>
-                    <p className="text-gray-600 text-sm mb-3">{announcement.content}</p>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <span>To: {announcement.sentTo}</span>
-                      <span>{announcement.sentAt}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-green-600">
-                    <FaCheck className="w-5 h-5" />
-                    <span className="text-sm font-medium">Created</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <style>{`

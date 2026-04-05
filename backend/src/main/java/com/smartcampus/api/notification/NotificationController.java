@@ -1,7 +1,11 @@
 package com.smartcampus.api.notification;
 
+import com.smartcampus.api.user.Role;
 import com.smartcampus.api.user.User;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -145,22 +149,188 @@ public class NotificationController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> broadcastNotification(
             @Valid @RequestBody BroadcastNotificationRequest request) {
-        // Implementation would iterate through all users
-        // For now, return success
+        NotificationType type = request.type() != null ? request.type() : NotificationType.INFO;
+        NotificationCategory category = request.category() != null
+                ? request.category()
+                : NotificationCategory.SYSTEM;
+
+        int recipientCount = notificationService.broadcastNotification(
+                request.title(),
+                request.message(),
+                type,
+                category,
+                request.targetRoles()
+        );
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(Map.of("message", "Broadcast sent successfully"));
+                .body(Map.of(
+                        "message", "Broadcast sent successfully",
+                        "recipientCount", String.valueOf(recipientCount)
+                ));
+    }
+
+    /**
+     * POST /api/notifications/admin/announcements - Create announcement for selected roles
+     * Admin can target specific roles, or all users if roles are omitted.
+     */
+    @PostMapping("/admin/announcements")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> createAnnouncement(
+            @Valid @RequestBody AnnouncementRequest request) {
+        try {
+            NotificationType announcementType = resolveAnnouncementType(request.type(), request.urgency());
+            int recipientCount = notificationService.broadcastNotification(
+                    request.title(),
+                    request.message(),
+                    announcementType,
+                    NotificationCategory.SYSTEM,
+                    request.targetRoles()
+            );
+
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of(
+                            "message", "Announcement sent successfully",
+                            "recipientCount", String.valueOf(recipientCount)
+                    ));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", getRootCauseMessage(ex)));
+        }
+    }
+
+    /**
+     * GET /api/notifications/admin/history - Get admin notification history grouped by campaign.
+     */
+    @GetMapping("/admin/history")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> getAdminNotificationHistory() {
+        List<NotificationService.AdminNotificationHistoryDTO> history =
+                notificationService.getAdminNotificationHistory();
+        return ResponseEntity.ok(Map.of("notifications", history));
+    }
+
+    /**
+     * PUT /api/notifications/admin/history/{campaignId} - Update a campaign notification.
+     * Updates are propagated to every recipient notification row.
+     */
+    @PutMapping("/admin/history/{campaignId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateAdminNotificationHistory(
+            @PathVariable String campaignId,
+            @RequestBody AdminNotificationUpdateRequest request
+    ) {
+        try {
+            NotificationService.AdminNotificationHistoryDTO updated =
+                    notificationService.updateNotificationCampaign(
+                            campaignId,
+                            request.title(),
+                            request.message(),
+                            request.enabled()
+                    );
+            return ResponseEntity.ok(updated);
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    /**
+     * DELETE /api/notifications/admin/history/{campaignId} - Delete a campaign notification.
+     * Deletes all recipient notification rows in the campaign.
+     */
+    @DeleteMapping("/admin/history/{campaignId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteAdminNotificationHistory(@PathVariable String campaignId) {
+        try {
+            int deletedCount = notificationService.deleteNotificationCampaign(campaignId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Notification campaign deleted successfully",
+                    "deletedCount", String.valueOf(deletedCount)
+            ));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
     }
 
     // DTOs
     public record SystemNotificationRequest(
+            @NotNull(message = "User ID is required")
             Long userId,
+
+            @NotBlank(message = "Title is required")
             String title,
+
+            @NotBlank(message = "Message is required")
             String message
     ) {}
 
     public record BroadcastNotificationRequest(
+            @NotBlank(message = "Title is required")
+            String title,
+
+            @NotBlank(message = "Message is required")
+            String message,
+
+            NotificationType type,
+
+            NotificationCategory category,
+
+            List<Role> targetRoles
+    ) {}
+
+    public record AnnouncementRequest(
+            @NotBlank(message = "Title is required")
+            String title,
+
+            @NotBlank(message = "Message is required")
+            String message,
+
+            NotificationType type,
+
+            String urgency,
+
+            List<Role> targetRoles
+    ) {}
+
+    public record AdminNotificationUpdateRequest(
             String title,
             String message,
-            NotificationType type
+            Boolean enabled
     ) {}
+
+    private String getRootCauseMessage(Throwable throwable) {
+        Throwable root = throwable;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        String message = root.getMessage();
+        if (message == null || message.isBlank()) {
+            return "Failed to create announcement";
+        }
+        return message;
+    }
+
+    private NotificationType resolveAnnouncementType(NotificationType explicitType, String urgency) {
+        if (explicitType != null) {
+            return explicitType;
+        }
+        if (urgency == null || urgency.isBlank()) {
+            return NotificationType.INFO;
+        }
+
+        String normalized = urgency.trim().toUpperCase();
+        return switch (normalized) {
+            case "URGENT" -> NotificationType.ERROR;
+            case "IMPORTANT" -> NotificationType.WARNING;
+            case "NORMAL" -> NotificationType.INFO;
+            default -> NotificationType.INFO;
+        };
+    }
 }
