@@ -50,8 +50,5 @@ logs/
 #node modules
 node_modules/
 
-#json files
-*.json
-
-#json files in frontend
-frontend/*.json
+#json files (exclude node_modules only)
+frontend/node_modules/**/*.json
