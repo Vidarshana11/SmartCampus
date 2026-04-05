@@ -67,13 +67,27 @@ const stats = [
 ]
 
 export default function Landing() {
-  const { token, loading } = useAuth()
+  const { token, user, loading } = useAuth()
   const navigate = useNavigate()
   usePageTitle('Home')
 
   useEffect(() => {
-    if (!loading && token) navigate('/dashboard', { replace: true })
-  }, [loading, token, navigate])
+    if (loading || !token) return
+
+    if (user?.role === 'ADMIN') {
+      navigate('/admin-panel', { replace: true })
+      return
+    }
+
+    if (user) {
+      navigate('/dashboard', { replace: true })
+      return
+    }
+
+    // Token exists but user profile is unavailable, force fresh login.
+    localStorage.removeItem('token')
+    navigate('/login', { replace: true })
+  }, [loading, token, user, navigate])
 
   return (
     <div className="min-h-screen bg-white">

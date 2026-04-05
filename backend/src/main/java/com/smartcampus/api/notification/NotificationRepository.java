@@ -9,18 +9,19 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    List<Notification> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Notification> findByUserIdAndIsEnabledTrueOrderByCreatedAtDesc(Long userId);
 
-    Page<Notification> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+    Page<Notification> findByUserIdAndIsEnabledTrueOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
-    List<Notification> findByUserIdAndIsReadFalseOrderByCreatedAtDesc(Long userId);
+    List<Notification> findByUserIdAndIsReadFalseAndIsEnabledTrueOrderByCreatedAtDesc(Long userId);
 
-    long countByUserIdAndIsReadFalse(Long userId);
+    long countByUserIdAndIsReadFalseAndIsEnabledTrue(Long userId);
 
     @Modifying
     @Query("UPDATE Notification n SET n.isRead = true, n.readAt = :readAt WHERE n.id = :id AND n.user.id = :userId")
@@ -30,9 +31,20 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("UPDATE Notification n SET n.isRead = true, n.readAt = :readAt WHERE n.user.id = :userId AND n.isRead = false")
     int markAllAsRead(@Param("userId") Long userId, @Param("readAt") LocalDateTime readAt);
 
-    @Query("SELECT n FROM Notification n WHERE n.user.id = :userId AND n.category IN :categories ORDER BY n.createdAt DESC")
+    @Query("SELECT n FROM Notification n WHERE n.user.id = :userId AND n.isEnabled = true AND n.category IN :categories ORDER BY n.createdAt DESC")
     List<Notification> findByUserIdAndCategories(@Param("userId") Long userId, @Param("categories") List<NotificationCategory> categories);
 
-    @Query("SELECT COUNT(n) FROM Notification n WHERE n.user.id = :userId AND n.isRead = false AND n.category IN :categories")
+    @Query("SELECT COUNT(n) FROM Notification n WHERE n.user.id = :userId AND n.isRead = false AND n.isEnabled = true AND n.category IN :categories")
     long countUnreadByUserIdAndCategories(@Param("userId") Long userId, @Param("categories") List<NotificationCategory> categories);
+
+    List<Notification> findByCampaignIdOrderByCreatedAtDesc(String campaignId);
+
+    List<Notification> findByUserIsNullAndIsEnabledTrueOrderByCreatedAtDesc();
+
+    @Query("SELECT n FROM Notification n " +
+            "WHERE n.isEnabled = true AND n.targetRoles IS NOT NULL AND n.targetRoles <> '' " +
+            "ORDER BY n.createdAt DESC")
+    List<Notification> findRoleTargetedEnabledNotificationsOrderByCreatedAtDesc();
+
+    List<Notification> findByIdIn(Collection<Long> ids);
 }

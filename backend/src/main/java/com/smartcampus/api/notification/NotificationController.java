@@ -2,6 +2,7 @@ package com.smartcampus.api.notification;
 
 import com.smartcampus.api.user.Role;
 import com.smartcampus.api.user.User;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -153,15 +154,12 @@ public class NotificationController {
                 ? request.category()
                 : NotificationCategory.SYSTEM;
 
-        // Convert string roles to Role enums
-        List<Role> targetRoles = convertStringToRoles(request.targetRoles());
-
         int recipientCount = notificationService.broadcastNotification(
                 request.title(),
                 request.message(),
                 type,
                 category,
-                targetRoles
+                request.targetRoles()
         );
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -180,14 +178,13 @@ public class NotificationController {
     public ResponseEntity<Map<String, String>> createAnnouncement(
             @Valid @RequestBody AnnouncementRequest request) {
         try {
-            List<Role> targetRoles = convertStringToRoles(request.targetRoles());
-
+            NotificationType announcementType = resolveAnnouncementType(request.type(), request.urgency());
             int recipientCount = notificationService.broadcastNotification(
                     request.title(),
                     request.message(),
-                    NotificationType.INFO,
+                    announcementType,
                     NotificationCategory.SYSTEM,
-                    targetRoles
+                    request.targetRoles()
             );
 
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -195,11 +192,70 @@ public class NotificationController {
                             "message", "Announcement sent successfully",
                             "recipientCount", String.valueOf(recipientCount)
                     ));
-        } catch (Exception e) {
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(
-                            "message", "Error: " + e.getMessage()
-                    ));
+                    .body(Map.of("error", getRootCauseMessage(ex)));
+        }
+    }
+
+    /**
+     * GET /api/notifications/admin/history - Get admin notification history grouped by campaign.
+     */
+    @GetMapping("/admin/history")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> getAdminNotificationHistory() {
+        List<NotificationService.AdminNotificationHistoryDTO> history =
+                notificationService.getAdminNotificationHistory();
+        return ResponseEntity.ok(Map.of("notifications", history));
+    }
+
+    /**
+     * PUT /api/notifications/admin/history/{campaignId} - Update a campaign notification.
+     * Updates are propagated to every recipient notification row.
+     */
+    @PutMapping("/admin/history/{campaignId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateAdminNotificationHistory(
+            @PathVariable String campaignId,
+            @RequestBody AdminNotificationUpdateRequest request
+    ) {
+        try {
+            NotificationService.AdminNotificationHistoryDTO updated =
+                    notificationService.updateNotificationCampaign(
+                            campaignId,
+                            request.title(),
+                            request.message(),
+                            request.enabled()
+                    );
+            return ResponseEntity.ok(updated);
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    /**
+     * DELETE /api/notifications/admin/history/{campaignId} - Delete a campaign notification.
+     * Deletes all recipient notification rows in the campaign.
+     */
+    @DeleteMapping("/admin/history/{campaignId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteAdminNotificationHistory(@PathVariable String campaignId) {
+        try {
+            int deletedCount = notificationService.deleteNotificationCampaign(campaignId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Notification campaign deleted successfully",
+                    "deletedCount", String.valueOf(deletedCount)
+            ));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }
     }
 
@@ -226,7 +282,7 @@ public class NotificationController {
 
             NotificationCategory category,
 
-            List<Object> targetRoles
+            List<Role> targetRoles
     ) {}
 
     public record AnnouncementRequest(
@@ -236,29 +292,45 @@ public class NotificationController {
             @NotBlank(message = "Message is required")
             String message,
 
-            List<Object> targetRoles
+            NotificationType type,
+
+            String urgency,
+
+            List<Role> targetRoles
     ) {}
 
-    /**
-     * Helper method to convert targetRoles from Object/String to Role enum
-     */
-    private List<Role> convertStringToRoles(List<Object> roleObjects) {
-        if (roleObjects == null || roleObjects.isEmpty()) {
-            return List.of();
+    public record AdminNotificationUpdateRequest(
+            String title,
+            String message,
+            Boolean enabled
+    ) {}
+
+    private String getRootCauseMessage(Throwable throwable) {
+        Throwable root = throwable;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        String message = root.getMessage();
+        if (message == null || message.isBlank()) {
+            return "Failed to create announcement";
+        }
+        return message;
+    }
+
+    private NotificationType resolveAnnouncementType(NotificationType explicitType, String urgency) {
+        if (explicitType != null) {
+            return explicitType;
+        }
+        if (urgency == null || urgency.isBlank()) {
+            return NotificationType.INFO;
         }
 
-        return roleObjects.stream()
-                .map(role -> {
-                    try {
-                        if (role instanceof Role) {
-                            return (Role) role;
-                        }
-                        return Role.valueOf(role.toString().toUpperCase());
-                    } catch (IllegalArgumentException e) {
-                        return null;
-                    }
-                })
-                .filter(role -> role != null)
-                .toList();
+        String normalized = urgency.trim().toUpperCase();
+        return switch (normalized) {
+            case "URGENT" -> NotificationType.ERROR;
+            case "IMPORTANT" -> NotificationType.WARNING;
+            case "NORMAL" -> NotificationType.INFO;
+            default -> NotificationType.INFO;
+        };
     }
 }
