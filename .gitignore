@@ -1,21 +1,52 @@
-# Backend
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Frontend build/output
+frontend/dist/
+frontend/build/
+frontend/dist-ssr/
+frontend/*.tsbuildinfo
+
+# Backend build/output
 backend/.gradle/
 backend/build/
+backend/out/
 backend/dist/
 backend/*.jar
 backend/*.war
 backend/*.ear
 backend/*.zip
-backend/src/main/resources/application.properties
 backend/uploads/
 
-# Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/build/
+# Local environment/config files
+.env
+.env.local
+.env.*.local
+frontend/.env
 frontend/.env.local
+frontend/.env.*.local
+backend/src/main/resources/application.properties
+backend/src/main/resources/application-*.properties
+
+# OAuth and secret key material
+*client_secret*.json
+*oauth*secret*.json
+credentials.json
+google-oauth*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
+# Logs
+*.log
+logs/
 frontend/npm-debug.log*
-frontend/*.tsbuildinfo
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
 
 # IDE
 .idea/
@@ -32,23 +63,3 @@ frontend/*.tsbuildinfo
 # OS
 .DS_Store
 Thumbs.db
-
-# Environment & Configuration
-.env
-.env.local
-.env.*.local
-application.properties
-application-*.properties
-
-# Backend Configuration (contains sensitive credentials)
-backend/src/main/resources/application.properties
-
-# Logs
-*.log
-logs/
-
-#node modules
-node_modules/
-
-#json files (exclude node_modules only)
-frontend/node_modules/**/*.json
