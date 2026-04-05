@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
 import {
@@ -13,46 +14,7 @@ import {
   FaBuilding
 } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
-
-// Announcements data
-const announcements = [
-  {
-    id: 1,
-    date: 'Mar 26',
-    time: '11:58 AM',
-    title: 'Module Registration Opens Tomorrow',
-    author: 'Academic Affairs',
-    category: 'Academic',
-    urgent: true,
-  },
-  {
-    id: 2,
-    date: 'Mar 25',
-    time: '9:35 PM',
-    title: 'Library Extended Hours During Finals Week',
-    author: 'Library Services',
-    category: 'Facility',
-    urgent: false,
-  },
-  {
-    id: 3,
-    date: 'Mar 24',
-    time: '2:15 PM',
-    title: 'Career Fair 2026 - Register Now',
-    author: 'Career Center',
-    category: 'Event',
-    urgent: false,
-  },
-  {
-    id: 4,
-    date: 'Mar 22',
-    time: '10:00 AM',
-    title: 'Campus Wi-Fi Maintenance Scheduled',
-    author: 'IT Services',
-    category: 'IT',
-    urgent: false,
-  },
-]
+import { getAnnouncementUrgencyMeta, getDashboardAnnouncements } from '../services/notificationService'
 
 // Quick actions data
 const quickActions = [
@@ -122,9 +84,12 @@ const recentActivity = [
 ]
 
 export default function Dashboard() {
-  const { user } = useAuth()
+  const { token, user } = useAuth()
   usePageTitle('Dashboard')
   const userName = user?.name || 'Student'
+  const [announcements, setAnnouncements] = useState([])
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false)
+  const [announcementsError, setAnnouncementsError] = useState('')
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -132,6 +97,44 @@ export default function Dashboard() {
     if (hour < 12) return 'Good morning'
     if (hour < 17) return 'Good afternoon'
     return 'Good evening'
+  }
+
+  useEffect(() => {
+    if (!token) return undefined
+
+    let cancelled = false
+    const loadAnnouncements = async (showLoading) => {
+      if (showLoading) setAnnouncementsLoading(true)
+      try {
+        const data = await getDashboardAnnouncements(token, { limit: 8 })
+        if (!cancelled) {
+          setAnnouncements(data)
+          setAnnouncementsError('')
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard announcements:', err)
+        if (!cancelled) setAnnouncementsError('Failed to load announcements')
+      } finally {
+        if (!cancelled && showLoading) setAnnouncementsLoading(false)
+      }
+    }
+
+    loadAnnouncements(true)
+    const interval = setInterval(() => loadAnnouncements(false), 30000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [token])
+
+  const formatAnnouncementDate = (dateString) => {
+    if (!dateString) return ''
+    return new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  }
+
+  const formatAnnouncementTime = (dateString) => {
+    if (!dateString) return ''
+    return new Date(dateString).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
   }
 
   return (
@@ -144,7 +147,7 @@ export default function Dashboard() {
               {getGreeting()}, {userName}! 👋
             </h1>
             <p className="text-white/80 mt-1">
-              Welcome back to your student portal. You have 3 new notifications.
+              Welcome back to your portal. Check the latest announcements below.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -192,43 +195,60 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-3">
-            {announcements.map((announcement) => (
-              <div
-                key={announcement.id}
-                className={`bg-white rounded-xl p-4 border-l-4 shadow-sm hover:shadow-md transition-shadow ${
-                  announcement.urgent ? 'border-red-500' : 'border-[#c9a227]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        announcement.urgent
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-[#003366]/10 text-[#003366]'
-                      }`}>
-                        {announcement.category}
-                      </span>
-                      {announcement.urgent && (
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                          Urgent
+            {announcementsLoading && (
+              <div className="bg-white rounded-xl p-4 border border-gray-200 text-sm text-gray-600">
+                Loading announcements...
+              </div>
+            )}
+
+            {!announcementsLoading && announcementsError && (
+              <div className="bg-red-50 rounded-xl p-4 border border-red-200 text-sm text-red-700">
+                {announcementsError}
+              </div>
+            )}
+
+            {!announcementsLoading && !announcementsError && announcements.length === 0 && (
+              <div className="bg-white rounded-xl p-4 border border-gray-200 text-sm text-gray-600">
+                No announcements available right now.
+              </div>
+            )}
+
+            {!announcementsLoading && !announcementsError && announcements.map((announcement) => {
+              const urgencyMeta = getAnnouncementUrgencyMeta(announcement.type)
+              return (
+                <div
+                  key={announcement.id}
+                  className={`bg-white rounded-xl p-4 border-l-4 shadow-sm hover:shadow-md transition-shadow ${
+                    urgencyMeta.borderClass
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          urgencyMeta.chipClass
+                        }`}>
+                          {urgencyMeta.label}
                         </span>
-                      )}
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                          Announcement
+                        </span>
+                      </div>
+                      <h3 className="font-semibold text-gray-900 mb-1">{announcement.title}</h3>
+                      <p className="text-sm text-gray-600">{announcement.message}</p>
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{announcement.title}</h3>
-                    <p className="text-sm text-gray-500 flex items-center gap-2">
-                      <FaUser className="w-3 h-3" /> {announcement.author}
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-medium text-gray-900">{announcement.date}</div>
-                    <div className="text-xs text-gray-500 flex items-center gap-1">
-                      <FaClock className="w-3 h-3" /> {announcement.time}
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-sm font-medium text-gray-900">
+                        {formatAnnouncementDate(announcement.createdAt)}
+                      </div>
+                      <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <FaClock className="w-3 h-3" /> {formatAnnouncementTime(announcement.createdAt)}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Recent Activity / Grades */}
