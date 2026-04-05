@@ -1,7 +1,7 @@
 # Smart Campus Operations Hub
 
 <p align="center">
-  <img src="frontend/public/campus.png" alt="Smart Campus banner" width="920">
+  <img src="./frontend/public/campus-white-bg.png" alt="Smart Campus banner" width="920">
 </p>
 
 <p align="center">
@@ -224,7 +224,7 @@ SmartCampus/
 │       └── application.properties (local only)
 ├── frontend/
 │   ├── src/
-│   ├── public/campus.png
+│   ├── public/campus-white-bg.png
 │   ├── .env.example
 │   └── .env (local only)
 └── scripts/setup-local.sh
