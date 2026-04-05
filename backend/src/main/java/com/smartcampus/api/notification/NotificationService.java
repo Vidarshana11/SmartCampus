@@ -1,5 +1,6 @@
 package com.smartcampus.api.notification;
 
+import com.smartcampus.api.user.Role;
 import com.smartcampus.api.user.User;
 import com.smartcampus.api.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -149,6 +150,41 @@ public class NotificationService {
     public void createSystemNotification(Long userId, String title, String message) {
         createNotification(userId, title, message, NotificationType.INFO,
                 NotificationCategory.SYSTEM, null, null);
+    }
+
+    /**
+     * Broadcast a notification to all users or selected roles.
+     * If targetRoles is null/empty, sends to all users.
+     *
+     * @return number of notifications created
+     */
+    @Transactional
+    public int broadcastNotification(String title, String message, NotificationType type,
+                                     NotificationCategory category, List<Role> targetRoles) {
+        List<User> recipients;
+        if (targetRoles == null || targetRoles.isEmpty()) {
+            recipients = userRepository.findAll();
+        } else {
+            recipients = userRepository.findByRoleIn(targetRoles);
+        }
+
+        if (recipients.isEmpty()) {
+            return 0;
+        }
+
+        List<Notification> notifications = recipients.stream()
+                .map(user -> Notification.builder()
+                        .user(user)
+                        .title(title)
+                        .message(message)
+                        .type(type)
+                        .category(category)
+                        .isRead(false)
+                        .build())
+                .toList();
+
+        notificationRepository.saveAll(notifications);
+        return notifications.size();
     }
 
     /**

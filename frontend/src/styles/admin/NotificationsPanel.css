@@ -1,0 +1,89 @@
+.notifications-panel {
+  padding: 0;
+}
+
+.notifications-panel .space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
+
+/* Form input styles */
+.notifications-panel input[type="text"],
+.notifications-panel textarea {
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.notifications-panel input[type="text"]:focus,
+.notifications-panel textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Button styles */
+.notifications-panel button {
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.notifications-panel button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Type button styles */
+.notifications-panel .flex.gap-3 button {
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.notifications-panel .flex.gap-3 button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Radio and checkbox styles */
+.notifications-panel input[type="radio"],
+.notifications-panel input[type="checkbox"] {
+  cursor: pointer;
+}
+
+/* Alert message styles */
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Notification history styles */
+.notifications-panel .divide-y > * {
+  transition: background-color 0.2s ease;
+}
+
+.notifications-panel .divide-y > *:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .notifications-panel .flex.gap-3 {
+    flex-direction: column;
+  }
+
+  .notifications-panel .flex.gap-3 button {
+    width: 100%;
+  }
+
+  .notifications-panel .space-y-6 > * + * {
+    margin-top: 1rem;
+  }
+}

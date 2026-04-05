@@ -81,11 +81,31 @@ export const sendSystemNotification = async (token, { userId, title, message }) 
  * Broadcast notification to all users (Admin only)
  * POST /api/notifications/admin/broadcast
  */
-export const broadcastNotification = async (token, { title, message, type = 'INFO' }) => {
+export const broadcastNotification = async (
+  token,
+  { title, message, type = 'INFO', category = 'SYSTEM', targetRoles = [] }
+) => {
   const res = await apiClient.post('/api/notifications/admin/broadcast', {
     title,
     message,
     type,
+    category,
+    targetRoles,
+  }, {
+    headers: getAuthHeader(token),
+  })
+  return res.data
+}
+
+/**
+ * Create role-based announcement (Admin only)
+ * POST /api/notifications/admin/announcements
+ */
+export const createAnnouncement = async (token, { title, message, targetRoles = [] }) => {
+  const res = await apiClient.post('/api/notifications/admin/announcements', {
+    title,
+    message,
+    targetRoles,
   }, {
     headers: getAuthHeader(token),
   })
