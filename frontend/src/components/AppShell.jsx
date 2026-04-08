@@ -38,10 +38,10 @@ export default function AppShell({ children }) {
   }
 
   const mainNavItems = [
-    { to: '/dashboard', label: 'Dashboard', icon: FaHome },
+    { to: '/resources', label: 'Resources', icon: FaBuilding },
     { to: '#schedule', label: 'My Schedule', icon: FaCalendarAlt },
     { to: '#courses', label: 'My Courses', icon: FaBook },
-    { to: '#resources', label: 'Resources', icon: FaBuilding },
+    
   ]
 
   const serviceNavItems = [
