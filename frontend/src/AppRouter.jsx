@@ -11,6 +11,7 @@ import AdminPanel from './pages/AdminPanel'
 import RoleManagement from './pages/RoleManagement'
 import AccountManagement from './pages/AccountManagement'
 import NotFound from './pages/NotFound'
+import ResourceList from './pages/ResourceList'
 
 function RequireAuth({ children, roles }) {
   const { token, user, loading } = useAuth()
@@ -98,6 +99,15 @@ export default function AppRouter() {
             element={
               <ProtectedShell roles={['ADMIN']}>
                 <RoleManagement />
+              </ProtectedShell>
+            }
+          />
+
+          <Route
+            path="/resources"
+            element={
+              <ProtectedShell>
+                <ResourceList />
               </ProtectedShell>
             }
           />
