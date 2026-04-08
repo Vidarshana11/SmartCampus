@@ -16,4 +16,14 @@ public interface ResourceRepository extends JpaRepository<Resource, Long>, JpaSp
     List<Resource> findByTypeAndStatus(ResourceType type, ResourceStatus status);
 
     boolean existsByName(String name);
+
+    @org.springframework.data.jpa.repository.Query("SELECT r FROM Resource r WHERE " +
+            "(:type IS NULL OR r.type = :type) AND " +
+            "(:capacity IS NULL OR r.capacity >= :capacity) AND " +
+            "(:location IS NULL OR LOWER(r.location) LIKE LOWER(CONCAT('%', :location, '%')))")
+    List<Resource> filterResources(
+            @org.springframework.data.repository.query.Param("type") ResourceType type,
+            @org.springframework.data.repository.query.Param("capacity") Integer capacity,
+            @org.springframework.data.repository.query.Param("location") String location
+    );
 }
