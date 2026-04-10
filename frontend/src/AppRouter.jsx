@@ -11,6 +11,10 @@ import AdminPanel from './pages/AdminPanel'
 import RoleManagement from './pages/RoleManagement'
 import AccountManagement from './pages/AccountManagement'
 import NotFound from './pages/NotFound'
+import ResourceList from './pages/ResourceList'
+import TicketList from './pages/TicketList'
+import TicketCreate from './pages/TicketCreate'
+import TicketDetails from './pages/TicketDetails'
 
 function RequireAuth({ children, roles }) {
   const { token, user, loading } = useAuth()
@@ -98,6 +102,40 @@ export default function AppRouter() {
             element={
               <ProtectedShell roles={['ADMIN']}>
                 <RoleManagement />
+              </ProtectedShell>
+            }
+          />
+
+          <Route
+            path="/resources"
+            element={
+              <ProtectedShell>
+                <ResourceList />
+              </ProtectedShell>
+            }
+          />
+
+          <Route
+            path="/tickets"
+            element={
+              <ProtectedShell>
+                <TicketList />
+              </ProtectedShell>
+            }
+          />
+          <Route
+            path="/tickets/create"
+            element={
+              <ProtectedShell>
+                <TicketCreate />
+              </ProtectedShell>
+            }
+          />
+          <Route
+            path="/tickets/:id"
+            element={
+              <ProtectedShell>
+                <TicketDetails />
               </ProtectedShell>
             }
           />
