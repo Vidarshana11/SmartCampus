@@ -13,7 +13,8 @@ import {
   FaChevronDown,
   FaHome,
   FaCog,
-  FaUsers
+  FaUsers,
+  FaExclamationTriangle
 } from 'react-icons/fa'
 
 export default function Navbar() {
@@ -32,6 +33,7 @@ export default function Navbar() {
 
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: FaHome },
+    { to: '/tickets', label: 'Tickets', icon: FaExclamationTriangle },
     { to: '#', label: 'My Schedule', icon: FaCalendar },
     { to: '#', label: 'Library', icon: FaBook },
     { to: '#', label: 'Services', icon: FaTools },

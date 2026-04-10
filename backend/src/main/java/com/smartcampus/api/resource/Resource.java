@@ -44,13 +44,12 @@ public class Resource {
     @Column(nullable = false)
     private String location;
 
-    // Availability windows (stored as JSON or separate table could be used)
-    // For simplicity, using start/end hours (0-23)
-    @Builder.Default
-    private Integer availabilityStartHour = 8;  // 8 AM default
+    // Availability windows using LocalTime (e.g., 08:00 - 18:00)
+    @Column(name = "available_from")
+    private java.time.LocalTime availableFrom;
 
-    @Builder.Default
-    private Integer availabilityEndHour = 22;   // 10 PM default
+    @Column(name = "available_to")
+    private java.time.LocalTime availableTo;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

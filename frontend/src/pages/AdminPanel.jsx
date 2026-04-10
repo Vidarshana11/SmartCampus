@@ -15,6 +15,7 @@ import {
   FaTrash,
   FaToggleOff,
   FaToggleOn,
+  FaTicketAlt,
 } from 'react-icons/fa'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -28,12 +29,16 @@ import {
 import UserManagementTab from '../components/admin/UserManagementTab'
 import ResourceManagementTab from '../components/admin/ResourceManagementTab'
 import BookingManagementTab from '../components/admin/BookingManagementTab'
+import TicketManagementTab from '../components/admin/TicketManagementTab'
+import TicketUpdateTab from '../components/admin/TicketUpdateTab'
 import AnnouncementsTab from '../components/admin/AnnouncementsTab'
 import ReportsTab from '../components/admin/ReportsTab'
 import AdminSettingsTab from '../components/admin/AdminSettingsTab'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: FaChartLine },
+  { id: 'tickets', label: 'Tickets', icon: FaTicketAlt },
+  { id: 'ticket-update', label: 'Update Ticket', icon: FaEdit },
   { id: 'users', label: 'Users', icon: FaUsers },
   { id: 'resources', label: 'Resources', icon: FaBuilding },
   { id: 'bookings', label: 'Bookings', icon: FaCalendarCheck },
@@ -46,6 +51,7 @@ export default function AdminPanel() {
   const navigate = useNavigate()
   const { token, logout } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [selectedTicketId, setSelectedTicketId] = useState(null)
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -216,6 +222,18 @@ export default function AdminPanel() {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardTab stats={stats} loading={loading} error={error} />
+      case 'tickets':
+        return <TicketManagementTab onSelectTicket={(id) => {
+          setSelectedTicketId(id)
+          setActiveTab('ticket-update')
+        }} />
+      case 'ticket-update':
+        return (
+          <TicketUpdateTab 
+            ticketId={selectedTicketId} 
+            onBack={() => setActiveTab('tickets')} 
+          />
+        )
       case 'users':
         return <UserManagementTab token={token} />
       case 'resources':
