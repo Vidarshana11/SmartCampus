@@ -8,8 +8,10 @@ import {
   FaClipboardList,
   FaChevronLeft,
   FaChevronRight,
+  FaTicketAlt,
 } from 'react-icons/fa'
 import AdminDashboard from '../../pages/admin/AdminDashboard'
+import TicketList from '../../pages/TicketList'
 import UserManagement from '../../pages/admin/UserManagement'
 import NotificationsPanel from '../../pages/admin/NotificationsPanel'
 import ReportsPanel from '../../pages/admin/ReportsPanel'
@@ -19,6 +21,7 @@ import '../../styles/admin/AdminLayout.css'
 
 const ADMIN_MODULES = [
   { id: 'dashboard', label: 'Dashboard', icon: FaChartBar, component: AdminDashboard },
+  { id: 'tickets', label: 'Tickets', icon: FaTicketAlt, component: () => <TicketList hideHeader={true} /> },
   { id: 'users', label: 'User Management', icon: FaUsers, component: UserManagement },
   { id: 'notifications', label: 'Announcements', icon: FaBell, component: NotificationsPanel },
   { id: 'reports', label: 'Reports & Analytics', icon: FaChartBar, component: ReportsPanel },
