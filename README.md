@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Backend-Spring_Boot_3.x-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot">
   <img src="https://img.shields.io/badge/Frontend-React_+_Vite-61DAFB?logo=react&logoColor=black" alt="React Vite">
-  <img src="https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white" alt="Java 21">
+  <img src="https://img.shields.io/badge/Java-21%2B-007396?logo=openjdk&logoColor=white" alt="Java 21+">
   <img src="https://img.shields.io/badge/Database-MySQL-4479A1?logo=mysql&logoColor=white" alt="MySQL">
 </p>
 
@@ -37,7 +37,7 @@ Smart Campus Operations Hub is a full-stack project for managing:
 ## Tech Stack
 | Layer | Technology |
 |---|---|
-| Backend | Java 21, Spring Boot, Spring Security, JPA, Gradle |
+| Backend | Java 21+, Spring Boot, Spring Security, JPA, Gradle |
 | Frontend | React, Vite, Axios |
 | Database | MySQL / MariaDB |
 | Auth | JWT + optional Google OAuth2 |
