@@ -318,7 +318,12 @@ public class NotificationService {
     @Transactional
     public List<AdminNotificationHistoryDTO> getAdminNotificationHistory() {
         consolidateLegacyBroadcastRows();
-        List<Notification> notifications = notificationRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+        List<Notification> notifications = notificationRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
+                .stream()
+                .filter(n -> n.getCategory() != NotificationCategory.ADMIN_ALERT
+                        && n.getCategory() != NotificationCategory.TICKET
+                        && n.getCategory() != NotificationCategory.BOOKING)
+                .toList();
 
         Map<String, List<Notification>> groupedByCampaign = new LinkedHashMap<>();
         for (Notification notification : notifications) {
