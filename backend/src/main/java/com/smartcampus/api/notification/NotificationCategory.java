@@ -4,5 +4,6 @@ public enum NotificationCategory {
     BOOKING,
     TICKET,
     SYSTEM,
-    MAINTENANCE
+    MAINTENANCE,
+    ADMIN_ALERT
 }
