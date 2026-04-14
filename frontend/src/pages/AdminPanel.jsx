@@ -266,7 +266,7 @@ export default function AdminPanel() {
                 onClick={handleOpenNotifications}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
                 <FaBell className="w-4 h-4" />
-                Notifications
+                View Announcements
               </button>
               <button
                 onClick={() => setActiveTab('account')}
@@ -325,9 +325,9 @@ export default function AdminPanel() {
           >
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Past Notifications</h2>
+                <h2 className="text-xl font-bold text-gray-900">Past Announcements</h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  View previous notifications and manage enable/disable and edit state.
+                  View previous announcements and manage enable/disable and edit state.
                 </p>
               </div>
               <button
@@ -343,7 +343,7 @@ export default function AdminPanel() {
               {notificationsLoading && (
                 <div className="text-sm text-gray-600 flex items-center gap-2">
                   <FaSpinner className="w-4 h-4 animate-spin" />
-                  Loading notifications...
+                  Loading announcements...
                 </div>
               )}
 
@@ -355,7 +355,7 @@ export default function AdminPanel() {
 
               {!notificationsLoading && !notificationsError && notificationHistory.length === 0 && (
                 <div className="p-4 rounded-lg bg-gray-50 text-sm text-gray-600">
-                  No past notifications found.
+                  No past announcements found.
                 </div>
               )}
 
