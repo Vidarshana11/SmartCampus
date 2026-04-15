@@ -23,7 +23,6 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   const isAdmin = user?.role === 'ADMIN'
-  const isManager = user?.role === 'MANAGER'
   const userName = user?.name ?? 'Guest'
 
   const handleLogout = () => {
