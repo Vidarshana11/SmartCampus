@@ -11,7 +11,7 @@ export default function BookingManagementTab({ token }) {
 
   // Pagination
   const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize] = useState(10)
   const [totalElements, setTotalElements] = useState(0)
 
   // Filtering
@@ -55,7 +55,7 @@ export default function BookingManagementTab({ token }) {
       setSuccess('Booking approved successfully')
       await fetchBookings(page)
       setTimeout(() => setSuccess(null), 3000)
-    } catch (err) {
+    } catch {
       setError('Failed to approve booking')
     } finally {
       setLoading(false)
@@ -77,7 +77,7 @@ export default function BookingManagementTab({ token }) {
       setRejectReason('')
       await fetchBookings(page)
       setTimeout(() => setSuccess(null), 3000)
-    } catch (err) {
+    } catch {
       setError('Failed to reject booking')
     } finally {
       setLoading(false)

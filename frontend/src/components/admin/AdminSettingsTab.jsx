@@ -22,7 +22,6 @@ export default function AdminSettingsTab() {
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
   const [showCropModal, setShowCropModal] = useState(false)
-  const [selectedFile, setSelectedFile] = useState(null)
 
   // Password change state
   const [showPasswordForm, setShowPasswordForm] = useState(false)
@@ -54,7 +53,6 @@ export default function AdminSettingsTab() {
     const reader = new FileReader()
     reader.onload = () => {
       setUploadImage(reader.result)
-      setSelectedFile(file)
       setShowCropModal(true)
       setError('')
     }
@@ -109,7 +107,6 @@ export default function AdminSettingsTab() {
       setSuccess('Profile picture updated successfully')
       setUploadImage(null)
       setShowCropModal(false)
-      setSelectedFile(null)
 
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
