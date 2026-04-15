@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useAuth } from '../../auth/AuthProvider'
-import { getAdminUsers, editAdminUser, changeAdminUserRole, deleteAdminUser, createAdminUser, createAdminAccount } from '../../services/adminService'
+import { getAdminUsers, changeAdminUserRole, deleteAdminUser, createAdminUser, createAdminAccount } from '../../services/adminService'
 import DataTable from './DataTable'
 import ConfirmDialog from './ConfirmDialog'
 import StatusBadge from './StatusBadge'
@@ -24,7 +24,7 @@ export default function UserManagementTab({ token }) {
 
   // Pagination
   const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize] = useState(10)
   const [totalElements, setTotalElements] = useState(0)
 
   // Filtering & Search
@@ -33,8 +33,6 @@ export default function UserManagementTab({ token }) {
 
   // Modals
   const [editingUserId, setEditingUserId] = useState(null)
-  const [editName, setEditName] = useState('')
-  const [editEmail, setEditEmail] = useState('')
   const [editRole, setEditRole] = useState('')
 
   const [deleteConfirmId, setDeleteConfirmId] = useState(null)
