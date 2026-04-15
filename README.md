@@ -21,6 +21,7 @@
 - [Prerequisites](#prerequisites)
 - [Quick Start For New Collaborators](#quick-start-for-new-collaborators)
 - [Run The App](#run-the-app)
+- [CI/CD](#cicd)
 - [Security Rules (Important)](#security-rules-important)
 - [What Goes To GitHub vs Local Only](#what-goes-to-github-vs-local-only)
 - [Troubleshooting](#troubleshooting)
@@ -154,6 +155,55 @@ npm run dev
 
 Frontend URL: `http://localhost:5173`
 
+## CI/CD
+
+GitHub Actions workflows are defined in `.github/workflows`:
+
+- `ci.yml`: Continuous Integration checks for pull requests and non-`main` branch pushes.
+- `cd.yml`: Continuous Delivery packaging for `main`, version tags (`v*`), and manual runs.
+
+### CI workflow (`.github/workflows/ci.yml`)
+
+- **Triggers**
+  - `pull_request` on all branches
+  - `push` to branches except `main`
+- **Jobs**
+  - `Backend Build and Test`
+    - Sets up Java 21
+    - Runs `./gradlew test`
+    - Builds `bootJar`
+    - Uploads backend JAR artifact
+  - `Frontend Lint and Build`
+    - Sets up Node.js 20
+    - Runs `npm ci`
+    - Runs `npm run lint`
+    - Runs `npm run build`
+    - Uploads `frontend/dist` artifact
+
+### CD workflow (`.github/workflows/cd.yml`)
+
+- **Triggers**
+  - `push` to `main`
+  - `push` tags matching `v*` (example: `v1.0.0`)
+  - `workflow_dispatch` (manual trigger)
+- **Pipeline**
+  - Builds backend release JAR (`./gradlew clean bootJar`)
+  - Builds frontend production assets (`npm ci && npm run build`)
+  - Archives frontend output as `frontend-dist.tar.gz`
+  - Uploads release artifacts (`backend-jar-release`, `frontend-dist-release`)
+  - Creates a GitHub Release when triggered by a `v*` tag, attaching both assets
+
+### How to verify CI/CD runs
+
+1. Go to your repository on GitHub and open the **Actions** tab.
+2. Open a PR (or push to a non-`main` branch) to confirm **CI** runs and both jobs pass.
+3. Merge to `main` to confirm **CD** runs and uploads release artifacts.
+4. Create and push a version tag (for example `v0.1.0`) to confirm GitHub Release creation:
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+
 ## Security Rules (Important)
 - Never commit `backend/src/main/resources/application.properties`
 - Never commit `frontend/.env`
@@ -231,4 +281,4 @@ SmartCampus/
 ```
 
 ---
-Last Updated: April 6, 2026
+Last Updated: April 16, 2026
