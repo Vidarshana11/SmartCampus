@@ -3,10 +3,9 @@ import { useAuth } from '../../auth/AuthProvider'
 import '../../styles/admin/UserManagement.css'
 
 export default function UserManagement() {
-  const { token } = useAuth()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [users, setUsers] = useState([
+  useAuth()
+  const [error] = useState('')
+  const [users] = useState([
     { id: 1, name: 'John Doe', email: 'john@example.com', role: 'STUDENT', createdAt: '2024-01-15', status: 'Active' },
     { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'LECTURER', createdAt: '2024-01-20', status: 'Active' },
     { id: 3, name: 'Tech Support', email: 'support@example.com', role: 'TECHNICIAN', createdAt: '2024-02-01', status: 'Active' },
