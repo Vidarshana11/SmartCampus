@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import apiClient from '../api/apiClient'
 
 const AuthContext = createContext(null)
@@ -8,12 +8,12 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchMe = async (activeToken) => {
+  const fetchMe = useCallback(async (activeToken) => {
     const res = await apiClient.get('/api/auth/me', {
       headers: { Authorization: `Bearer ${activeToken}` },
     })
     return res.data?.user ?? null
-  }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
       try {
         const me = await fetchMe(token)
         if (!cancelled) setUser(me)
-      } catch (err) {
+      } catch {
         // If token is invalid/expired, clear it so user must login again.
         if (!cancelled) {
           setToken(null)
@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [token, fetchMe])
 
   const login = async ({ email, password }) => {
     const res = await apiClient.post('/api/auth/login', { email, password })
@@ -100,13 +100,13 @@ export function AuthProvider({ children }) {
         return me
       },
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [token, user, loading]
+    [token, user, loading, fetchMe]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth must be used within AuthProvider.')
