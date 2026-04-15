@@ -107,7 +107,7 @@ const AccountManagement = () => {
       const croppedBlob = await getCroppedImg(uploadImage, croppedAreaPixels)
       const croppedFile = new File([croppedBlob], selectedFile.name, { type: 'image/jpeg' })
 
-      const response = await uploadProfilePicture(token, user.id, croppedFile)
+      await uploadProfilePicture(token, user.id, croppedFile)
       setSuccess('Profile picture updated successfully')
       setShowCropModal(false)
       setUploadImage(null)

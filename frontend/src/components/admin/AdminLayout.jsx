@@ -30,7 +30,7 @@ const ADMIN_MODULES = [
 ]
 
 export default function AdminLayout() {
-  const { token, loading } = useAuth()
+  const { loading } = useAuth()
   const [activeModule, setActiveModule] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
 

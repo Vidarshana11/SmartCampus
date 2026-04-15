@@ -63,7 +63,7 @@ export default function ResourceManagementTab({ token }) {
       setDeleteConfirmId(null)
       await fetchResources()
       setTimeout(() => setSuccess(null), 3000)
-    } catch (err) {
+    } catch {
       setError('Failed to delete resource')
     } finally {
       setLoading(false)
