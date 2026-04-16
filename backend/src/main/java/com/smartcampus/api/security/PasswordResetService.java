@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -21,9 +22,6 @@ public class PasswordResetService {
 
     @Value("${app.password-reset.ttl-minutes:30}")
     private long resetTtlMinutes;
-
-    @Value("${app.password-reset.frontend-reset-url:http://localhost:5173/reset-password}")
-    private String frontendResetUrl;
 
     public PasswordResetService(
             UserRepository userRepository,
@@ -39,32 +37,95 @@ public class PasswordResetService {
         this.emailSenderService = emailSenderService;
     }
 
+    /**
+     * Generates and sends a 6-digit reset code to the user's email.
+     * Returns the code (for testing purposes - in production, only send via email).
+     */
     @Transactional
-    public void requestPasswordReset(String email) {
+    public String requestPasswordReset(String email) {
         Optional<User> maybeUser = userRepository.findByEmail(email);
         if (maybeUser.isEmpty()) {
-            return;
+            return null;
         }
 
         User user = maybeUser.get();
         invalidateActiveTokensForUser(user);
 
-        String rawToken = tokenGeneratorService.generateRawToken();
-        String tokenHash = tokenGeneratorService.hashToken(rawToken);
+        String rawCode = tokenGeneratorService.generateNumericCode();
+        String codeHash = tokenGeneratorService.hashCode(rawCode);
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiresAt = now.plusMinutes(resetTtlMinutes);
 
         PasswordResetToken resetToken = PasswordResetToken.builder()
                 .user(user)
-                .tokenHash(tokenHash)
+                .tokenHash(codeHash)
                 .expiresAt(expiresAt)
                 .build();
         passwordResetTokenRepository.save(resetToken);
 
-        String resetUrl = frontendResetUrl + "?token=" + rawToken;
-        emailSenderService.sendPasswordReset(user.getEmail(), user.getName(), resetUrl);
+        emailSenderService.sendPasswordResetCode(user.getEmail(), user.getName(), rawCode);
+        return rawCode;
     }
 
+    /**
+     * Verifies a 6-digit reset code for the given email.
+     * Returns true if code is valid.
+     */
+    @Transactional
+    public boolean verifyResetCode(String email, String rawCode) {
+        LocalDateTime now = LocalDateTime.now();
+
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return false;
+        }
+        User user = userOpt.get();
+
+        // Find active tokens for this user and check if any matches the code
+        List<PasswordResetToken> activeTokens =
+                passwordResetTokenRepository.findByUserAndConsumedAtIsNullAndExpiresAtAfter(user, now);
+
+        for (PasswordResetToken token : activeTokens) {
+            if (token.matchesCode(rawCode, tokenGeneratorService)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Resets password using email and 6-digit code.
+     * Consumes the code on successful reset.
+     */
+    @Transactional
+    public boolean resetPassword(String email, String rawCode, String newPassword) {
+        LocalDateTime now = LocalDateTime.now();
+
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return false;
+        }
+        User user = userOpt.get();
+
+        // Find active tokens for this user and check if any matches the code
+        List<PasswordResetToken> activeTokens =
+                passwordResetTokenRepository.findByUserAndConsumedAtIsNullAndExpiresAtAfter(user, now);
+
+        for (PasswordResetToken token : activeTokens) {
+            if (token.matchesCode(rawCode, tokenGeneratorService)) {
+                // Valid code - consume it and update password
+                user.setPasswordHash(passwordEncoder.encode(newPassword));
+                token.setConsumedAt(now);
+
+                userRepository.save(user);
+                passwordResetTokenRepository.save(token);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Legacy method - kept for backwards compatibility with token-based reset
     @Transactional
     public boolean resetPassword(String rawToken, String newPassword) {
         String tokenHash = tokenGeneratorService.hashToken(rawToken);

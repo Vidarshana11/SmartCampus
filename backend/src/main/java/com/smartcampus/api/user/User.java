@@ -53,7 +53,7 @@ public class User implements UserDetails {
     private LocalDateTime updatedAt;
 
     @Column(name = "email_verified", nullable = false)
-    private boolean emailVerified;
+    private Boolean emailVerified;
 
     @Column(name = "email_verified_at")
     private LocalDateTime emailVerifiedAt;
@@ -65,17 +65,16 @@ public class User implements UserDetails {
         if (role == null) {
             role = Role.STUDENT;
         }
-        if (passwordHash == null || passwordHash.isBlank()) {
-            emailVerified = true;
-            emailVerifiedAt = LocalDateTime.now();
-        } else {
-            emailVerified = false;
-        }
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    // Explicit getter for backward compatibility
+    public boolean isEmailVerified() {
+        return emailVerified != null && emailVerified;
     }
 
     // ===== UserDetails Implementation =====

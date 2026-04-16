@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { FaLock, FaGraduationCap } from 'react-icons/fa'
-import { resetPassword } from '../services/authService'
+import { FaLock, FaGraduationCap, FaKey, FaEye, FaEyeSlash, FaEnvelope } from 'react-icons/fa'
+import { resetPassword, resetPasswordWithCode } from '../services/authService'
 import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function ResetPassword() {
@@ -10,8 +10,13 @@ export default function ResetPassword() {
   const [searchParams] = useSearchParams()
   const token = useMemo(() => searchParams.get('token') ?? '', [searchParams])
 
+  // Form fields
+  const [email, setEmail] = useState('')
+  const [resetCode, setResetCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [message, setMessage] = useState(null)
@@ -21,10 +26,6 @@ export default function ResetPassword() {
     setError(null)
     setMessage(null)
 
-    if (!token) {
-      setError('Reset token is missing from the URL.')
-      return
-    }
     if (newPassword.length < 6) {
       setError('Password must be at least 6 characters.')
       return
@@ -36,12 +37,24 @@ export default function ResetPassword() {
 
     setSubmitting(true)
     try {
-      const data = await resetPassword(token, newPassword)
+      let data
+      if (token) {
+        // Legacy token-based reset
+        data = await resetPassword(token, newPassword)
+      } else if (resetCode && email) {
+        // Code-based reset
+        data = await resetPasswordWithCode(email, resetCode, newPassword)
+      } else {
+        setError('Please provide a reset token or code.')
+        setSubmitting(false)
+        return
+      }
       setMessage(data?.message ?? 'Password reset successful. You can now sign in.')
       setNewPassword('')
       setConfirmPassword('')
+      setResetCode('')
     } catch (err) {
-      setError(err?.response?.data?.error ?? 'Invalid or expired reset token.')
+      setError(err?.response?.data?.error ?? 'Invalid or expired reset token/code.')
     } finally {
       setSubmitting(false)
     }
@@ -55,7 +68,11 @@ export default function ResetPassword() {
             <FaGraduationCap className="w-8 h-8 text-[#c9a227]" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Reset Password</h1>
-          <p className="text-gray-600 mt-1">Set a new password for your account.</p>
+          <p className="text-gray-600 mt-1">
+            {token
+              ? 'Set a new password for your account.'
+              : 'Enter your details and set a new password.'}
+          </p>
         </div>
 
         {message && (
@@ -70,6 +87,52 @@ export default function ResetPassword() {
         )}
 
         <form onSubmit={onSubmit} className="space-y-4">
+          {!token && (
+            <>
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <FaEnvelope className="w-4 h-4" />
+                  </div>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent text-black"
+                    placeholder="Enter your email"
+                    required={!token}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="resetCode" className="block text-sm font-medium text-gray-700 mb-2">
+                  Reset Code
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <FaKey className="w-4 h-4" />
+                  </div>
+                  <input
+                    id="resetCode"
+                    type="text"
+                    value={resetCode}
+                    onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent text-black text-center text-xl tracking-widest"
+                    placeholder="000000"
+                    maxLength={6}
+                    inputMode="numeric"
+                    required={!token}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
           <div>
             <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
               New Password
@@ -80,13 +143,21 @@ export default function ResetPassword() {
               </div>
               <input
                 id="newPassword"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent text-black"
+                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent text-black"
                 placeholder="At least 6 characters"
+                minLength={6}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
@@ -96,7 +167,7 @@ export default function ResetPassword() {
             </label>
             <input
               id="confirmPassword"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent text-black"
@@ -114,10 +185,15 @@ export default function ResetPassword() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm">
-          <Link to="/login" className="text-[#003366] hover:underline font-medium">
+        <div className="mt-6 text-center text-sm space-y-2">
+          <Link to="/login" className="text-[#003366] hover:underline font-medium block">
             Back to login
           </Link>
+          {!token && (
+            <Link to="/forgot-password" className="text-gray-500 hover:underline block">
+              Request a new reset code
+            </Link>
+          )}
         </div>
       </div>
     </div>
