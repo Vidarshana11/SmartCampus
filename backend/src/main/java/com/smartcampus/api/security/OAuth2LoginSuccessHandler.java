@@ -42,6 +42,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             newUser.setName(name != null ? name : email);
             newUser.setProfilePictureUrl(picture);
             newUser.setRole(Role.USER);
+            newUser.setEmailVerified(true);  // OAuth emails are pre-verified
             return userRepository.save(newUser);
         });
 

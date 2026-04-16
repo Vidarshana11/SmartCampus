@@ -7,6 +7,7 @@ export default function VerifyEmail() {
   usePageTitle('Verify Email')
   const [searchParams] = useSearchParams()
   const token = useMemo(() => searchParams.get('token') ?? '', [searchParams])
+
   const [status, setStatus] = useState('loading')
   const [message, setMessage] = useState('Verifying your email...')
 
@@ -45,9 +46,16 @@ export default function VerifyEmail() {
         {status === 'loading' ? (
           <div className="w-8 h-8 border-4 border-[#003366]/20 border-t-[#003366] rounded-full animate-spin mx-auto" />
         ) : (
-          <Link to="/login" className="text-[#003366] hover:underline font-semibold">
-            Continue to login
-          </Link>
+          <div className="space-y-4">
+            <Link to="/login" className="text-[#003366] hover:underline font-semibold block">
+              Continue to login
+            </Link>
+            {status === 'error' && (
+              <Link to="/register" className="text-gray-500 hover:underline text-sm block">
+                Back to registration
+              </Link>
+            )}
+          </div>
         )}
       </div>
     </div>
