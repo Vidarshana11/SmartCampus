@@ -86,6 +86,52 @@ public class NotificationController {
     }
 
     /**
+     * GET /api/notifications/admin - Get admin-specific notifications (ADMIN_ALERT category)
+     * Admin notifications are separate from user notifications
+     */
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> getAdminNotifications(
+            @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        // Get notifications for ADMIN_ALERT category
+        List<NotificationDTO> adminNotifications = notificationService
+                .getNotificationsByCategories(user.getId(), List.of(NotificationCategory.ADMIN_ALERT));
+
+        // Paginate manually
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), adminNotifications.size());
+        List<NotificationDTO> paginatedNotifications = start >= adminNotifications.size()
+                ? List.of()
+                : adminNotifications.subList(start, end);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("notifications", paginatedNotifications);
+        response.put("currentPage", page);
+        response.put("totalItems", adminNotifications.size());
+        response.put("totalPages", (int) Math.ceil((double) adminNotifications.size() / size));
+        response.put("unreadCount", adminNotifications.stream().filter(n -> !n.isRead()).count());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * GET /api/notifications/admin/unread-count - Get unread admin notification count
+     */
+    @GetMapping("/admin/unread-count")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Long>> getAdminUnreadCount(@AuthenticationPrincipal User user) {
+        List<NotificationDTO> adminNotifications = notificationService
+                .getNotificationsByCategories(user.getId(), List.of(NotificationCategory.ADMIN_ALERT));
+        long count = adminNotifications.stream().filter(n -> !n.isRead()).count();
+        return ResponseEntity.ok(Map.of("unreadCount", count));
+    }
+
+    /**
      * PUT /api/notifications/{id}/read - Mark a notification as read
      * Member 4: PUT endpoint
      */
