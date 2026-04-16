@@ -62,13 +62,7 @@ export function AuthProvider({ children }) {
 
   const register = async ({ email, name, password, role }) => {
     const res = await apiClient.post('/api/auth/register', { email, name, password, role })
-    const nextToken = res.data?.token
-    if (!nextToken) throw new Error('Register succeeded but token missing in response.')
-
-    localStorage.setItem('token', nextToken)
-    setToken(nextToken)
-    if (res.data?.user) setUser(res.data.user)
-    return res.data?.user
+    return res.data
   }
 
   const loginWithToken = async (rawToken) => {

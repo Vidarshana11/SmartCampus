@@ -21,6 +21,7 @@
 - [Prerequisites](#prerequisites)
 - [Quick Start For New Collaborators](#quick-start-for-new-collaborators)
 - [Run The App](#run-the-app)
+- [Forgot Password (Dev Mode)](#forgot-password-dev-mode)
 - [CI/CD](#cicd)
 - [Security Rules (Important)](#security-rules-important)
 - [What Goes To GitHub vs Local Only](#what-goes-to-github-vs-local-only)
@@ -123,6 +124,22 @@ spring.security.oauth2.client.registration.google.client-id=YOUR_GOOGLE_CLIENT_I
 spring.security.oauth2.client.registration.google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
 ```
 
+Email verification + SMTP (local/production):
+```properties
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=YOUR_SMTP_USERNAME
+spring.mail.password=YOUR_SMTP_APP_PASSWORD
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+app.mail.from=YOUR_FROM_EMAIL
+
+app.email-verification.ttl-minutes=1440
+app.email-verification.frontend-verify-url=http://localhost:5173/verify-email
+app.password-reset.ttl-minutes=30
+app.password-reset.frontend-reset-url=http://localhost:5173/reset-password
+```
+
 ### 6. Frontend env
 `frontend/.env` is already created from `.env.example`. Default:
 ```env
@@ -154,6 +171,34 @@ npm run dev
 ```
 
 Frontend URL: `http://localhost:5173`
+
+## Forgot Password (Dev Mode)
+
+The project includes a password reset flow with expiring single-use tokens.
+
+- Request reset: `POST /api/auth/forgot-password` with `{ "email": "user@example.com" }`
+- Reset password: `POST /api/auth/reset-password` with `{ "token": "...", "newPassword": "..." }`
+- Security behavior:
+  - Forgot-password response is generic (does not reveal whether email exists)
+  - Reset tokens are stored as hashes and expire after a configured TTL
+  - Tokens are single-use
+
+### Local development flow
+
+1. Open the login page and click **Forgot password?**
+2. Submit your email on `/forgot-password`
+3. Check backend logs for the reset URL (dev mode logs the link instead of sending email)
+4. Open the logged URL (`/reset-password?token=...`) and set a new password
+5. Sign in with the new password
+
+### Password reset config
+
+In `backend/src/main/resources/application.properties`:
+
+```properties
+app.password-reset.ttl-minutes=30
+app.password-reset.frontend-reset-url=http://localhost:5173/reset-password
+```
 
 ## CI/CD
 
