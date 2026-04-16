@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 public class RoleManagementController {
 
     private final UserRepository userRepository;
+    private final UserDeletionService userDeletionService;
 
     /**
      * GET /api/roles - Get all available roles
@@ -160,8 +161,9 @@ public class RoleManagementController {
     }
 
     /**
-     * DELETE /api/users/{id} - Delete user
+     * DELETE /api/users/{id} - Delete user (Admin only)
      * Member 4: DELETE endpoint for user removal
+     * Deletes all related data: bookings, tickets, comments, notifications, tokens
      */
     @DeleteMapping("/users/{id}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -172,14 +174,20 @@ public class RoleManagementController {
         // Prevent self-deletion
         if (currentUser.getId().equals(id)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Cannot delete your own account"));
+                    .body(Map.of("error", "Cannot delete your own account through admin panel. Use account settings instead."));
         }
 
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-
-        userRepository.delete(user);
-        return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
+        try {
+            // Use the deletion service to handle all related entities
+            userDeletionService.deleteUser(id, true);
+            return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "User not found"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to delete user: " + e.getMessage()));
+        }
     }
 
     /**
