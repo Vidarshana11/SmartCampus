@@ -42,7 +42,14 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
-                .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                .requestMatchers(
+                        "/api/auth/register",
+                        "/api/auth/login",
+                        "/api/auth/forgot-password",
+                        "/api/auth/reset-password",
+                        "/api/auth/verify-email",
+                        "/api/auth/resend-verification"
+                ).permitAll()
                 .requestMatchers("/api/auth/me").authenticated()
                 .requestMatchers("/login/**", "/oauth2/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
