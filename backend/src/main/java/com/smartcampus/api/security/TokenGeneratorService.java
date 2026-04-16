@@ -12,6 +12,7 @@ import java.util.HexFormat;
 public class TokenGeneratorService {
 
     private static final int TOKEN_BYTES = 32;
+    private static final int CODE_LENGTH = 6;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public String generateRawToken() {
@@ -28,5 +29,23 @@ public class TokenGeneratorService {
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to hash token", ex);
         }
+    }
+
+    /**
+     * Generates a 6-digit numeric verification code
+     */
+    public String generateNumericCode() {
+        StringBuilder code = new StringBuilder(CODE_LENGTH);
+        for (int i = 0; i < CODE_LENGTH; i++) {
+            code.append(secureRandom.nextInt(10));
+        }
+        return code.toString();
+    }
+
+    /**
+     * Hashes a numeric code for secure storage
+     */
+    public String hashCode(String code) {
+        return hashToken(code);
     }
 }
