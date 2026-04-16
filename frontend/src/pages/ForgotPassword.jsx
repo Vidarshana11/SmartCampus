@@ -20,7 +20,6 @@ export default function ForgotPassword() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [message, setMessage] = useState(null)
-  const [codeVerified, setCodeVerified] = useState(false)
 
   // Step 1: Send reset code
   const handleSendCode = async (e) => {
@@ -54,7 +53,6 @@ export default function ForgotPassword() {
     setSubmitting(true)
     try {
       await verifyResetCode(email, resetCode)
-      setCodeVerified(true)
       setMessage('Code verified successfully. You can now set a new password.')
       setStep(3)
     } catch (err) {
