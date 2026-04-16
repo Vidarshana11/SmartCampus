@@ -45,4 +45,12 @@ public class PasswordResetToken {
     public boolean isActive(LocalDateTime now) {
         return consumedAt == null && expiresAt.isAfter(now);
     }
+
+    /**
+     * For 6-digit code verification - check if code matches hash
+     */
+    public boolean matchesCode(String rawCode, TokenGeneratorService tokenGeneratorService) {
+        String inputHash = tokenGeneratorService.hashCode(rawCode);
+        return this.tokenHash.equals(inputHash);
+    }
 }
