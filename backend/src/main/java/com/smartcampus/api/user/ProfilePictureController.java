@@ -3,6 +3,7 @@ package com.smartcampus.api.user;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ import java.util.UUID;
  * - POST /api/users/{id}/change-password - Change user password
  * - DELETE /api/users/{id}/delete-account - Delete user account (self-service)
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -38,6 +40,7 @@ public class ProfilePictureController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserDeletionService userDeletionService;
 
     /**
      * POST /api/users/{id}/upload-profile-picture - Upload or update profile picture
@@ -172,28 +175,25 @@ public class ProfilePictureController {
     }
 
     /**
-     * DELETE /api/users/{id}/delete-account - Delete user account permanently
+     * DELETE /api/users/{id}/delete-account - Delete user account permanently (self-service)
      * Users can only delete their own account
+     * Deletes all related data: bookings, tickets, comments, notifications, tokens
      */
     @DeleteMapping("/{id}/delete-account")
     @PreAuthorize("@securityService.isCurrentUser(#id, authentication)")
     public ResponseEntity<Map<String, String>> deleteAccount(@PathVariable Long id) {
+        log.info("Starting self-service account deletion for user id: {}", id);
 
         try {
-            User user = userRepository.findById(id)
-                    .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-
-            // Delete profile picture if exists
-            if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) {
-                deleteProfilePictureFile(user.getProfilePictureUrl());
-            }
-
-            // Delete user account
-            userRepository.delete(user);
-
+            // Use the deletion service to handle all related entities
+            userDeletionService.deleteUser(id, true);
             return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
-
-        } catch (IOException e) {
+        } catch (EntityNotFoundException e) {
+            log.error("User not found for deletion: {}", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "User not found"));
+        } catch (RuntimeException e) {
+            log.error("Error deleting account for user {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to delete account: " + e.getMessage()));
         }
