@@ -1,5 +1,6 @@
 package com.smartcampus.api.booking;
 
+import com.smartcampus.api.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,6 +13,12 @@ import java.util.List;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByUserId(Long userId);
+
+    // For user account deletion - find by User entity
+    List<Booking> findByUser(User user);
+
+    // For user account deletion - find by reviewer
+    List<Booking> findByReviewedBy(User reviewedBy);
 
     List<Booking> findByResourceId(Long resourceId);
 
