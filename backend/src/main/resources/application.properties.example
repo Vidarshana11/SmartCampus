@@ -50,18 +50,32 @@ jwt.refresh-expiration=604800000
 # ========================================
 # PASSWORD RESET CONFIGURATION
 # ========================================
+# Users receive a 6-digit code via email to reset their password
+# Code expires after the configured TTL
 app.password-reset.ttl-minutes=30
 app.password-reset.frontend-reset-url=http://localhost:5173/reset-password
 
 # ========================================
 # EMAIL VERIFICATION CONFIGURATION
 # ========================================
+# New registrations receive a 6-digit code to verify their email
+# Code expires after the configured TTL (default: 24 hours)
 app.email-verification.ttl-minutes=1440
 app.email-verification.frontend-verify-url=http://localhost:5173/verify-email
 
 # ========================================
 # SMTP MAIL CONFIGURATION
 # ========================================
+# Required for email verification and password reset
+#
+# For Gmail:
+# 1. Enable 2-Factor Authentication on your Google account
+# 2. Go to Google Account → Security → App passwords
+# 3. Generate an app password for "Mail"
+# 4. Use that 16-character password below (NOT your regular password)
+#
+# For development: Codes are logged to console if SMTP is not configured
+
 spring.mail.host=smtp.gmail.com
 spring.mail.port=587
 spring.mail.username=YOUR_SMTP_USERNAME
@@ -69,6 +83,10 @@ spring.mail.password=YOUR_SMTP_APP_PASSWORD
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
 app.mail.from=YOUR_FROM_EMAIL
+
+# Other SMTP providers:
+# Outlook: spring.mail.host=smtp-mail.outlook.com
+# Yahoo:   spring.mail.host=smtp.mail.yahoo.com
 
 # ========================================
 # OAUTH2 GOOGLE CONFIGURATION
