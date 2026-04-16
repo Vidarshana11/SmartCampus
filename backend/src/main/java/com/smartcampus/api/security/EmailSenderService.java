@@ -32,12 +32,36 @@ public class EmailSenderService {
         send(toEmail, subject, body);
     }
 
+    public void sendEmailVerificationCode(String toEmail, String fullName, String verificationCode) {
+        String displayName = (fullName == null || fullName.isBlank()) ? "there" : fullName;
+        String subject = "Your SmartCampus verification code";
+        String body = "Hi " + displayName + ",\n\n"
+                + "Your verification code is: " + verificationCode + "\n\n"
+                + "Enter this code in the app to verify your email address.\n"
+                + "This code will expire in 24 hours.\n\n"
+                + "If you did not request this, you can ignore this email.\n\n"
+                + "SmartCampus Team";
+        send(toEmail, subject, body);
+    }
+
     public void sendPasswordReset(String toEmail, String fullName, String resetUrl) {
         String displayName = (fullName == null || fullName.isBlank()) ? "there" : fullName;
         String subject = "Reset your SmartCampus password";
         String body = "Hi " + displayName + ",\n\n"
                 + "We received a request to reset your password. Use the link below:\n"
                 + resetUrl + "\n\n"
+                + "If you did not request this, you can ignore this email.\n\n"
+                + "SmartCampus Team";
+        send(toEmail, subject, body);
+    }
+
+    public void sendPasswordResetCode(String toEmail, String fullName, String resetCode) {
+        String displayName = (fullName == null || fullName.isBlank()) ? "there" : fullName;
+        String subject = "Your SmartCampus password reset code";
+        String body = "Hi " + displayName + ",\n\n"
+                + "Your password reset code is: " + resetCode + "\n\n"
+                + "Enter this code in the app to reset your password.\n"
+                + "This code will expire in 30 minutes.\n\n"
                 + "If you did not request this, you can ignore this email.\n\n"
                 + "SmartCampus Team";
         send(toEmail, subject, body);

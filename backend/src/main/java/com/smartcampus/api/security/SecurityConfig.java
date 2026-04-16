@@ -48,7 +48,12 @@ public class SecurityConfig {
                         "/api/auth/forgot-password",
                         "/api/auth/reset-password",
                         "/api/auth/verify-email",
-                        "/api/auth/resend-verification"
+                        "/api/auth/resend-verification",
+                        "/api/auth/send-verification-code",
+                        "/api/auth/register-with-code",
+                        "/api/auth/send-reset-code",
+                        "/api/auth/reset-password-with-code",
+                        "/api/auth/verify-reset-code"
                 ).permitAll()
                 .requestMatchers("/api/auth/me").authenticated()
                 .requestMatchers("/login/**", "/oauth2/**").permitAll()
