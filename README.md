@@ -353,6 +353,27 @@ cd backend
 gradlew.bat clean build --refresh-dependencies
 ```
 
+### Email not sending
+
+**Check SMTP credentials:**
+- Verify `spring.mail.password` is an **App Password**, not your regular Gmail password
+- Ensure `spring.mail.username` matches the email you're sending from
+- Check backend logs for SMTP error messages
+
+**For development without email:**
+Codes are logged to the console. Look for lines like:
+```
+Sending verification code to: user@example.com
+Code: 123456
+```
+
+### "Email not verified" error on login
+
+New registrations require email verification. Check:
+1. Backend logs for the verification code
+2. Navigate to `/verify-email` and enter your email + the code
+3. Or click "Resend code" on the verify page
+
 ## Project Structure
 ```text
 SmartCampus/
@@ -390,4 +411,4 @@ SmartCampus/
 ```
 
 ---
-Last Updated: April 16, 2026
+Last Updated: April 17, 2026
