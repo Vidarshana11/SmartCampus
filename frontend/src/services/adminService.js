@@ -81,12 +81,13 @@ export const deleteAdminUser = async (token, userId) => {
 }
 
 /**
- * Create new user
- * POST /api/auth/register
+ * Create new user (Admin only)
+ * POST /api/auth/admin/register
+ * Regular users need email verification, ADMIN accounts are auto-verified
  */
 export const createAdminUser = async (token, { name, email, password, role = 'STUDENT' }) => {
   const res = await apiClient.post(
-    '/api/auth/register',
+    '/api/auth/admin/register',
     { name, email, password, role },
     { headers: getAuthHeader(token) }
   )
@@ -94,12 +95,13 @@ export const createAdminUser = async (token, { name, email, password, role = 'ST
 }
 
 /**
- * Create new admin user
- * POST /api/auth/register (with ADMIN role)
+ * Create new admin user (Admin only)
+ * POST /api/auth/admin/register (with ADMIN role)
+ * Admin accounts are automatically email-verified
  */
 export const createAdminAccount = async (token, { name, email, password }) => {
   const res = await apiClient.post(
-    '/api/auth/register',
+    '/api/auth/admin/register',
     { name, email, password, role: 'ADMIN' },
     { headers: getAuthHeader(token) }
   )
