@@ -11,6 +11,7 @@ frontend/*.tsbuildinfo
 # Backend build/output
 backend/.gradle/
 backend/build/
+backend/bin/
 backend/out/
 backend/dist/
 backend/*.jar
