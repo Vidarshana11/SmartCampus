@@ -34,6 +34,7 @@ import TicketUpdateTab from '../components/admin/TicketUpdateTab'
 import AnnouncementsTab from '../components/admin/AnnouncementsTab'
 import ReportsTab from '../components/admin/ReportsTab'
 import AdminSettingsTab from '../components/admin/AdminSettingsTab'
+import AdminNotificationBell from '../components/notifications/AdminNotificationBell'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: FaChartLine },
@@ -261,7 +262,10 @@ export default function AdminPanel() {
               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
               <p className="text-gray-600 mt-1">Manage campus operations, users, and resources</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-center">
+              {/* Admin Notification Bell - for ticket alerts and admin notifications */}
+              <AdminNotificationBell />
+
               <button
                 onClick={handleOpenNotifications}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
