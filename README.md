@@ -363,12 +363,26 @@ SmartCampus/
 │   │   ├── notification/
 │   │   ├── resource/
 │   │   ├── security/
+│   │   │   ├── AuthController.java
+│   │   │   ├── EmailSenderService.java          # Email sending
+│   │   │   ├── EmailVerificationService.java      # Verification logic
+│   │   │   ├── EmailVerificationToken.java        # Verification entity
+│   │   │   ├── PasswordResetService.java        # Password reset logic
+│   │   │   ├── PasswordResetToken.java          # Reset code entity
+│   │   │   └── TokenGeneratorService.java        # 6-digit code generation
 │   │   └── user/
 │   └── src/main/resources/
 │       ├── application.properties.example
 │       └── application.properties (local only)
 ├── frontend/
 │   ├── src/
+│   │   ├── pages/
+│   │   │   ├── ForgotPassword.jsx               # 3-step reset flow
+│   │   │   ├── Register.jsx                     # Registration + verify prompt
+│   │   │   ├── ResetPassword.jsx                # New password form
+│   │   │   └── VerifyEmail.jsx                  # Code verification
+│   │   └── services/
+│   │       └── authService.js                   # Auth API calls
 │   ├── public/campus-white-bg.png
 │   ├── .env.example
 │   └── .env (local only)
