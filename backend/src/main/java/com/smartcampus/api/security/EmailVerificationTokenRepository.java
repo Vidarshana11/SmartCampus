@@ -16,4 +16,7 @@ public interface EmailVerificationTokenRepository extends JpaRepository<EmailVer
     List<EmailVerificationToken> findByUserAndConsumedAtIsNull(User user);
 
     List<EmailVerificationToken> findByUserAndConsumedAtIsNullAndExpiresAtAfter(User user, LocalDateTime now);
+
+    // For user account deletion - find all tokens by user
+    List<EmailVerificationToken> findByUser(User user);
 }
