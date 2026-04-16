@@ -231,3 +231,49 @@ export const deleteAdminNotificationHistory = async (token, campaignId) => {
   })
   return res.data
 }
+
+// ===== ADMIN-SPECIFIC NOTIFICATIONS (Separate from user notifications) =====
+
+/**
+ * Get admin-specific notifications (ADMIN_ALERT category)
+ * These are notifications specifically for admins about new tickets, etc.
+ * GET /api/notifications/admin
+ */
+export const getAdminNotifications = async (token, { page = 0, size = 20 } = {}) => {
+  const res = await apiClient.get('/api/notifications/admin', {
+    headers: getAuthHeader(token),
+    params: { page, size },
+  })
+  return res.data
+}
+
+/**
+ * Get unread admin notification count
+ * GET /api/notifications/admin/unread-count
+ */
+export const getAdminUnreadCount = async (token) => {
+  const res = await apiClient.get('/api/notifications/admin/unread-count', {
+    headers: getAuthHeader(token),
+  })
+  return res.data.unreadCount
+}
+
+/**
+ * Mark admin notification as read
+ * Uses the same endpoint as regular notifications
+ */
+export const markAdminNotificationAsRead = async (token, notificationId) => {
+  await apiClient.put(`/api/notifications/${notificationId}/read`, {}, {
+    headers: getAuthHeader(token),
+  })
+}
+
+/**
+ * Mark all admin notifications as read
+ * Uses the same endpoint as regular notifications
+ */
+export const markAllAdminNotificationsAsRead = async (token) => {
+  await apiClient.put('/api/notifications/read-all', {}, {
+    headers: getAuthHeader(token),
+  })
+}
