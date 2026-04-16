@@ -1,5 +1,6 @@
 package com.smartcampus.api.notification;
 
+import com.smartcampus.api.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -18,4 +19,9 @@ public interface NotificationReadStatusRepository extends JpaRepository<Notifica
     long countByNotificationId(Long notificationId);
 
     void deleteByNotificationIdIn(Collection<Long> notificationIds);
+
+    // For user account deletion - find by User entity
+    List<NotificationReadStatus> findByUser(User user);
+
+    List<NotificationReadStatus> findByNotification(Notification notification);
 }
