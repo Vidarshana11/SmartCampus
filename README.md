@@ -21,7 +21,8 @@
 - [Prerequisites](#prerequisites)
 - [Quick Start For New Collaborators](#quick-start-for-new-collaborators)
 - [Run The App](#run-the-app)
-- [Forgot Password (Dev Mode)](#forgot-password-dev-mode)
+- [Email Setup (Required)](#email-setup-required)
+- [Email Verification & Password Reset](#email-verification--password-reset)
 - [CI/CD](#cicd)
 - [Security Rules (Important)](#security-rules-important)
 - [What Goes To GitHub vs Local Only](#what-goes-to-github-vs-local-only)
@@ -124,21 +125,9 @@ spring.security.oauth2.client.registration.google.client-id=YOUR_GOOGLE_CLIENT_I
 spring.security.oauth2.client.registration.google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
 ```
 
-Email verification + SMTP (local/production):
-```properties
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=YOUR_SMTP_USERNAME
-spring.mail.password=YOUR_SMTP_APP_PASSWORD
-spring.mail.properties.mail.smtp.auth=true
-spring.mail.properties.mail.smtp.starttls.enable=true
-app.mail.from=YOUR_FROM_EMAIL
+**Required: Email Configuration**
 
-app.email-verification.ttl-minutes=1440
-app.email-verification.frontend-verify-url=http://localhost:5173/verify-email
-app.password-reset.ttl-minutes=30
-app.password-reset.frontend-reset-url=http://localhost:5173/reset-password
-```
+The app requires SMTP for email verification and password reset. See [Email Setup](#email-setup-required) below.
 
 ### 6. Frontend env
 `frontend/.env` is already created from `.env.example`. Default:
@@ -172,33 +161,94 @@ npm run dev
 
 Frontend URL: `http://localhost:5173`
 
-## Forgot Password (Dev Mode)
+## Email Setup (Required)
 
-The project includes a password reset flow with expiring single-use tokens.
-
-- Request reset: `POST /api/auth/forgot-password` with `{ "email": "user@example.com" }`
-- Reset password: `POST /api/auth/reset-password` with `{ "token": "...", "newPassword": "..." }`
-- Security behavior:
-  - Forgot-password response is generic (does not reveal whether email exists)
-  - Reset tokens are stored as hashes and expire after a configured TTL
-  - Tokens are single-use
-
-### Local development flow
-
-1. Open the login page and click **Forgot password?**
-2. Submit your email on `/forgot-password`
-3. Check backend logs for the reset URL (dev mode logs the link instead of sending email)
-4. Open the logged URL (`/reset-password?token=...`) and set a new password
-5. Sign in with the new password
-
-### Password reset config
-
-In `backend/src/main/resources/application.properties`:
+Email is required for **email verification** (new registrations) and **password reset**. Add this to your `application.properties`:
 
 ```properties
+# SMTP Configuration (Gmail example)
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=your.email@gmail.com
+spring.mail.password=your-app-password
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+app.mail.from=your.email@gmail.com
+
+# Email verification settings
+app.email-verification.ttl-minutes=1440
+app.email-verification.frontend-verify-url=http://localhost:5173/verify-email
+
+# Password reset settings
 app.password-reset.ttl-minutes=30
 app.password-reset.frontend-reset-url=http://localhost:5173/reset-password
 ```
+
+### Gmail App Password Setup
+
+1. Enable 2-Factor Authentication on your Google account
+2. Go to Google Account → Security → App passwords
+3. Generate an app password for "Mail"
+4. Use that 16-character password (not your regular password) in `spring.mail.password`
+
+### Other SMTP Providers
+
+**Outlook/Hotmail:**
+```properties
+spring.mail.host=smtp-mail.outlook.com
+spring.mail.port=587
+```
+
+**Yahoo:**
+```properties
+spring.mail.host=smtp.mail.yahoo.com
+spring.mail.port=587
+```
+
+### Local Development Mode (Console Logging)
+
+For local development without real email, the app logs verification codes to the console:
+
+```
+Sending verification code to: user@example.com
+Code: 123456
+Link: http://localhost:5173/verify-email?code=123456&email=user@example.com
+```
+
+Check your backend terminal for these logs when testing registration or password reset.
+
+## Email Verification & Password Reset
+
+### Email Verification Flow (Registration)
+
+New users must verify their email before logging in:
+
+1. Register at `/register` → System sends 6-digit code to email
+2. User enters code at `/verify-email` → Account activated
+3. User can now log in
+
+**Test locally:** Check backend logs for the verification code instead of using real email.
+
+### Password Reset Flow
+
+Users can reset forgotten passwords via email verification:
+
+1. Click **Forgot Password?** on login page
+2. Enter email → System sends 6-digit reset code
+3. Enter code at `/forgot-password` (step 2)
+4. Set new password at `/reset-password` (step 3)
+5. Redirect to login with success message
+
+**API Endpoints:**
+- `POST /api/auth/send-reset-code` - Send reset code to email
+- `POST /api/auth/verify-reset-code` - Verify the 6-digit code
+- `POST /api/auth/reset-password` - Reset password with verified code
+
+**Security features:**
+- Generic responses (doesn't reveal if email exists)
+- 6-digit codes expire after configured TTL (default 30 min)
+- Single-use codes (deleted after verification)
+- Rate limiting on code requests
 
 ## CI/CD
 
@@ -303,6 +353,27 @@ cd backend
 gradlew.bat clean build --refresh-dependencies
 ```
 
+### Email not sending
+
+**Check SMTP credentials:**
+- Verify `spring.mail.password` is an **App Password**, not your regular Gmail password
+- Ensure `spring.mail.username` matches the email you're sending from
+- Check backend logs for SMTP error messages
+
+**For development without email:**
+Codes are logged to the console. Look for lines like:
+```
+Sending verification code to: user@example.com
+Code: 123456
+```
+
+### "Email not verified" error on login
+
+New registrations require email verification. Check:
+1. Backend logs for the verification code
+2. Navigate to `/verify-email` and enter your email + the code
+3. Or click "Resend code" on the verify page
+
 ## Project Structure
 ```text
 SmartCampus/
@@ -313,12 +384,26 @@ SmartCampus/
 │   │   ├── notification/
 │   │   ├── resource/
 │   │   ├── security/
+│   │   │   ├── AuthController.java
+│   │   │   ├── EmailSenderService.java          # Email sending
+│   │   │   ├── EmailVerificationService.java      # Verification logic
+│   │   │   ├── EmailVerificationToken.java        # Verification entity
+│   │   │   ├── PasswordResetService.java        # Password reset logic
+│   │   │   ├── PasswordResetToken.java          # Reset code entity
+│   │   │   └── TokenGeneratorService.java        # 6-digit code generation
 │   │   └── user/
 │   └── src/main/resources/
 │       ├── application.properties.example
 │       └── application.properties (local only)
 ├── frontend/
 │   ├── src/
+│   │   ├── pages/
+│   │   │   ├── ForgotPassword.jsx               # 3-step reset flow
+│   │   │   ├── Register.jsx                     # Registration + verify prompt
+│   │   │   ├── ResetPassword.jsx                # New password form
+│   │   │   └── VerifyEmail.jsx                  # Code verification
+│   │   └── services/
+│   │       └── authService.js                   # Auth API calls
 │   ├── public/campus-white-bg.png
 │   ├── .env.example
 │   └── .env (local only)
@@ -326,4 +411,4 @@ SmartCampus/
 ```
 
 ---
-Last Updated: April 16, 2026
+Last Updated: April 17, 2026
