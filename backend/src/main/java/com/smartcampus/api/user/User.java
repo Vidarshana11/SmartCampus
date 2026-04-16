@@ -52,12 +52,24 @@ public class User implements UserDetails {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
+
+    @Column(name = "email_verified_at")
+    private LocalDateTime emailVerifiedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         if (role == null) {
             role = Role.STUDENT;
+        }
+        if (passwordHash == null || passwordHash.isBlank()) {
+            emailVerified = true;
+            emailVerifiedAt = LocalDateTime.now();
+        } else {
+            emailVerified = false;
         }
     }
 
