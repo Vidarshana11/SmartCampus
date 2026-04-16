@@ -48,6 +48,29 @@ jwt.expiration=86400000
 jwt.refresh-expiration=604800000
 
 # ========================================
+# PASSWORD RESET CONFIGURATION
+# ========================================
+app.password-reset.ttl-minutes=30
+app.password-reset.frontend-reset-url=http://localhost:5173/reset-password
+
+# ========================================
+# EMAIL VERIFICATION CONFIGURATION
+# ========================================
+app.email-verification.ttl-minutes=1440
+app.email-verification.frontend-verify-url=http://localhost:5173/verify-email
+
+# ========================================
+# SMTP MAIL CONFIGURATION
+# ========================================
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=YOUR_SMTP_USERNAME
+spring.mail.password=YOUR_SMTP_APP_PASSWORD
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+app.mail.from=YOUR_FROM_EMAIL
+
+# ========================================
 # OAUTH2 GOOGLE CONFIGURATION
 # ========================================
 # IMPORTANT: Get credentials from https://console.cloud.google.com/

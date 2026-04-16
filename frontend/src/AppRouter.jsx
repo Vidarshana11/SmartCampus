@@ -4,6 +4,9 @@ import AppShell from './components/AppShell'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import VerifyEmail from './pages/VerifyEmail'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import OAuthSuccess from './pages/OAuthSuccess'
 import RoleSelection from './pages/RoleSelection'
 import Dashboard from './pages/Dashboard'
@@ -57,6 +60,9 @@ export default function AppRouter() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/auth/success" element={<OAuthSuccess />} />
           <Route path="/role-selection" element={<RoleSelection />} />
 

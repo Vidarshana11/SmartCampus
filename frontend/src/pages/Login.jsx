@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { resendVerificationEmail } from '../services/authService'
 import { FaGraduationCap, FaEye, FaEyeSlash, FaGoogle, FaGithub, FaEnvelope, FaLock } from 'react-icons/fa'
 
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   usePageTitle('Sign In')
 
   const [email, setEmail] = useState('')
@@ -14,10 +16,13 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const [message, setMessage] = useState(location.state?.message ?? null)
+  const [resendingVerification, setResendingVerification] = useState(false)
 
   const onSubmit = async (e) => {
     e.preventDefault()
     setError(null)
+    setMessage(null)
     setSubmitting(true)
     try {
       const user = await login({ email, password })
@@ -28,6 +33,23 @@ export default function Login() {
       setError(err?.response?.data?.error ?? err?.message ?? 'Login failed. Please check your credentials.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setError('Enter your email first to resend verification.')
+      return
+    }
+    try {
+      setResendingVerification(true)
+      setError(null)
+      const result = await resendVerificationEmail(email)
+      setMessage(result?.message ?? 'Verification email sent if account exists.')
+    } catch (err) {
+      setError(err?.response?.data?.error ?? 'Failed to resend verification email.')
+    } finally {
+      setResendingVerification(false)
     }
   }
 
@@ -82,9 +104,26 @@ export default function Login() {
                 <p className="text-gray-600 mt-1">Enter your credentials to continue</p>
               </div>
 
+              {message && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
+                  {message}
+                </div>
+              )}
               {error && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
                   {error}
+                  {error?.toLowerCase().includes('email not verified') && (
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resendingVerification}
+                        className="text-[#003366] hover:underline font-semibold disabled:opacity-60"
+                      >
+                        {resendingVerification ? 'Sending...' : 'Resend verification email'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -141,7 +180,7 @@ export default function Login() {
                     <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-[#003366] focus:ring-[#003366]" />
                     Remember me
                   </label>
-                  <Link to="#" className="text-[#003366] hover:underline font-medium">
+                  <Link to="/forgot-password" className="text-[#003366] hover:underline font-medium">
                     Forgot password?
                   </Link>
                 </div>

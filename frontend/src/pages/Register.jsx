@@ -27,10 +27,11 @@ export default function Register() {
     setError(null)
     setSubmitting(true)
     try {
-      const user = await register({ email, name, password, role })
-      // Redirect admins to admin panel, others to dashboard
-      const redirectPath = user?.role === 'ADMIN' ? '/admin-panel' : '/dashboard'
-      navigate(redirectPath, { replace: true })
+      const result = await register({ email, name, password, role })
+      navigate('/login', {
+        replace: true,
+        state: { message: result?.message ?? 'Registration successful. Please verify your email.' },
+      })
     } catch (err) {
       setError(err?.response?.data?.error ?? err?.message ?? 'Registration failed. Please try again.')
     } finally {
