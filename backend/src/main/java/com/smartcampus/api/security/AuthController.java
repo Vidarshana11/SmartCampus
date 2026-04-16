@@ -8,8 +8,10 @@ import com.smartcampus.api.user.UserRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,7 @@ import java.util.Map;
  * Authentication controller for local registration & login.
  * Also provides a protected /me endpoint to verify JWT tokens.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -218,6 +221,55 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "message", "Registration successful. Please verify your email before signing in."
         ));
+    }
+
+    // ===== Admin Create User (Auto-verifies ADMIN accounts) =====
+    @PostMapping("/admin/register")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> adminCreateUser(
+            @Valid @RequestBody RegisterRequest request,
+            @AuthenticationPrincipal User adminUser) {
+
+        if (userRepository.existsByEmail(request.email())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "An account with this email already exists."));
+        }
+
+        User user = User.builder()
+                .email(request.email())
+                .name(request.name())
+                .passwordHash(passwordEncoder.encode(request.password()))
+                .build();
+
+        // Assign role (default to STUDENT if not provided or invalid)
+        Role assignedRole;
+        try {
+            assignedRole = Role.valueOf(request.role().toUpperCase());
+        } catch (Exception e) {
+            assignedRole = Role.STUDENT;
+        }
+        user.setRole(assignedRole);
+
+        // Auto-verify email for ADMIN accounts created by admin
+        // Regular users still need email verification
+        if (assignedRole == Role.ADMIN) {
+            user.setEmailVerified(true);
+            user.setEmailVerifiedAt(LocalDateTime.now());
+            log.info("Admin {} created new admin account for {} - auto-verified", adminUser.getEmail(), request.email());
+        } else {
+            user.setEmailVerified(false);
+        }
+
+        userRepository.save(user);
+
+        // Build response
+        Map<String, Object> response = new HashMap<>();
+        if (assignedRole == Role.ADMIN) {
+            response.put("message", "Admin account created successfully. Email is pre-verified.");
+        } else {
+            response.put("message", "User created successfully. They will need to verify their email.");
+        }
+        response.put("user", buildUserMap(user));
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // ===== Login =====

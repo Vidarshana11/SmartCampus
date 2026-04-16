@@ -1,5 +1,8 @@
 package com.smartcampus.api.ticket;
 
+import com.smartcampus.api.notification.NotificationCategory;
+import com.smartcampus.api.notification.NotificationService;
+import com.smartcampus.api.notification.NotificationType;
 import com.smartcampus.api.resource.Resource;
 import com.smartcampus.api.resource.ResourceRepository;
 import java.util.Objects;
@@ -9,6 +12,7 @@ import com.smartcampus.api.user.Role;
 import com.smartcampus.api.user.User;
 import com.smartcampus.api.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +25,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TicketService {
@@ -29,6 +34,7 @@ public class TicketService {
     private final TicketAttachmentRepository attachmentRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Value("${upload.dir:uploads/}")
     private String uploadDir;
@@ -78,6 +84,49 @@ public class TicketService {
                     attachmentRepository.save(attachment);
                 }
             }
+        }
+
+        // Send notification to the user who created the ticket
+        try {
+            notificationService.createTicketNotification(
+                    user.getId(),
+                    "Ticket Created Successfully",
+                    String.format("Your ticket #%d for %s has been created and is now %s.",
+                            savedTicket.getId(),
+                            resource.getName(),
+                            savedTicket.getStatus().name().replace("_", " ")),
+                    NotificationType.SUCCESS,
+                    savedTicket.getId()
+            );
+            log.info("Sent ticket creation notification to user: {}", user.getId());
+        } catch (Exception e) {
+            log.error("Failed to send ticket creation notification to user {}: {}", user.getId(), e.getMessage());
+        }
+
+        // Send notification to all admins about the new ticket
+        try {
+            List<User> admins = userRepository.findByRoleIn(List.of(Role.ADMIN));
+            for (User admin : admins) {
+                // Skip if the admin is the same as the ticket creator
+                if (!admin.getId().equals(user.getId())) {
+                    notificationService.createNotification(
+                            admin.getId(),
+                            "New Ticket Raised",
+                            String.format("A new ticket #%d has been raised by %s for %s with %s priority.",
+                                    savedTicket.getId(),
+                                    user.getName(),
+                                    resource.getName(),
+                                    savedTicket.getPriority().name()),
+                            NotificationType.INFO,
+                            NotificationCategory.ADMIN_ALERT,
+                            savedTicket.getId(),
+                            "TICKET"
+                    );
+                }
+            }
+            log.info("Sent new ticket notifications to {} admins", admins.size());
+        } catch (Exception e) {
+            log.error("Failed to send admin notifications for new ticket: {}", e.getMessage());
         }
 
         return convertToDTO(ticketRepository.findById(Objects.requireNonNull(savedTicket.getId())).orElse(savedTicket));
@@ -159,6 +208,31 @@ public class TicketService {
 
         ticket.setStatus(newStatus);
         Ticket savedTicket = ticketRepository.save(ticket);
+
+        // Send notification to the ticket creator about status change
+        try {
+            User ticketCreator = ticket.getCreatedBy();
+            if (ticketCreator != null) {
+                String statusMessage = String.format("Your ticket #%d status has been changed to %s%s",
+                        savedTicket.getId(),
+                        newStatus.name().replace("_", " "),
+                        resolutionNotes != null && !resolutionNotes.isBlank()
+                                ? ". Resolution notes: " + resolutionNotes
+                                : ".");
+
+                notificationService.createTicketNotification(
+                        ticketCreator.getId(),
+                        "Ticket Status Updated",
+                        statusMessage,
+                        NotificationType.INFO,
+                        savedTicket.getId()
+                );
+                log.info("Sent ticket status update notification to user: {}", ticketCreator.getId());
+            }
+        } catch (Exception e) {
+            log.error("Failed to send ticket status update notification: {}", e.getMessage());
+        }
+
         return convertToDTO(savedTicket);
     }
 
