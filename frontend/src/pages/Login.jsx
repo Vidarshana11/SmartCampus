@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { BRAND_FULL_NAME } from '../constants/branding'
 import { resendVerificationEmail } from '../services/authService'
-import { FaGraduationCap, FaEye, FaEyeSlash, FaGoogle, FaGithub, FaEnvelope, FaLock } from 'react-icons/fa'
+import { FaEye, FaEyeSlash, FaGoogle, FaGithub, FaEnvelope, FaLock } from 'react-icons/fa'
 
 export default function Login() {
   const { login } = useAuth()
@@ -59,8 +60,8 @@ export default function Login() {
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#003366] via-[#004080] to-[#005299] relative">
         <div className="absolute inset-0 bg-black/20" />
         <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-12">
-          <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-2xl">
-            <FaGraduationCap className="w-12 h-12 text-[#003366]" />
+          <div className="w-28 h-28 bg-white rounded-2xl p-2 flex items-center justify-center mb-6 shadow-2xl ring-4 ring-white/30">
+            <img src="/universityImage.png" alt="University logo" className="w-full h-full object-contain rounded-xl" />
           </div>
           <h1 className="text-4xl font-bold mb-4 text-center">Welcome Back!</h1>
           <p className="text-lg text-white/80 text-center max-w-md">
@@ -90,10 +91,10 @@ export default function Login() {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="w-16 h-16 bg-[#003366] rounded-xl flex items-center justify-center mx-auto mb-4">
-              <FaGraduationCap className="w-8 h-8 text-[#c9a227]" />
+            <div className="w-24 h-24 bg-white rounded-xl p-2 flex items-center justify-center mx-auto mb-4 shadow-lg ring-2 ring-[#003366]/20">
+              <img src="/universityImage.png" alt="University logo" className="w-full h-full object-contain rounded-lg" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Smart Campus</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{BRAND_FULL_NAME}</h1>
             <p className="text-gray-600">Sign in to your account</p>
           </div>
 
