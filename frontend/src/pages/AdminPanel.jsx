@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   FaBell,
   FaCog,
@@ -50,6 +50,7 @@ const TABS = [
 
 export default function AdminPanel() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { token, logout } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedTicketId, setSelectedTicketId] = useState(null)
@@ -65,6 +66,23 @@ export default function AdminPanel() {
   const [savingCampaignId, setSavingCampaignId] = useState(null)
 
   usePageTitle('Admin Panel')
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search)
+    const tabParam = searchParams.get('tab')
+    const ticketIdParam = searchParams.get('ticketId')
+
+    if (tabParam && TABS.some((tab) => tab.id === tabParam)) {
+      setActiveTab(tabParam)
+    }
+
+    if (tabParam === 'ticket-update' && ticketIdParam) {
+      const parsedTicketId = Number(ticketIdParam)
+      if (Number.isInteger(parsedTicketId) && parsedTicketId > 0) {
+        setSelectedTicketId(parsedTicketId)
+      }
+    }
+  }, [location.search])
 
   const handleLogout = () => {
     logout()
