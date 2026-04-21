@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import reactLogo from './assets/react.svg'
-import campusLogo from './assets/campus.png'
 import heroImg from './assets/hero.png'
 import './App.css'
+
+const campusLogo = '/universityImage.png'
 
 function App() {
   const [count, setCount] = useState(0)

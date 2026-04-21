@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { BRAND_SHORT_NAME } from '../constants/branding'
 import NotificationBell from './notifications/NotificationBell'
 import {
   FaUser,
@@ -53,7 +54,7 @@ export default function Navbar() {
               <FaGraduationCap className="w-6 h-6 text-[#ffd700]" />
             </div>
             <div className="hidden sm:block">
-              <div className="text-white font-bold text-lg leading-tight">Smart Campus</div>
+              <div className="text-white font-bold text-lg leading-tight">{BRAND_SHORT_NAME}</div>
               <div className="text-white/60 text-xs">Student Portal</div>
             </div>
           </Link>
