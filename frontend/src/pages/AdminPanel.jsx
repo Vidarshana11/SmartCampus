@@ -520,7 +520,7 @@ function DashboardTab({ stats, loading, error }) {
           {/* Welcome Message */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to SmartCampus Operations Hub</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to National University of Smart Technologies Operations Hub</h2>
               <p className="text-gray-600">Use the tabs above to manage users, resources, facility bookings, and campus announcements.</p>
             </div>
             <div className="p-8">

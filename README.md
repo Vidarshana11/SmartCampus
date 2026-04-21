@@ -1,7 +1,7 @@
-# Smart Campus Operations Hub
+# National University of Smart Technologies Operations Hub
 
 <p align="center">
-  <img src="./frontend/public/campus-white-bg.png" alt="Smart Campus banner" width="920">
+  <img src="./frontend/public/universityImage.png" alt="National University of Smart Technologies banner" width="920">
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@
 - [Project Structure](#project-structure)
 
 ## Overview
-Smart Campus Operations Hub is a full-stack project for managing:
+National University of Smart Technologies Operations Hub is a full-stack project for managing:
 - users and role-based access
 - resource and facility operations
 - bookings
@@ -404,7 +404,7 @@ SmartCampus/
 │   │   │   └── VerifyEmail.jsx                  # Code verification
 │   │   └── services/
 │   │       └── authService.js                   # Auth API calls
-│   ├── public/campus-white-bg.png
+│   ├── public/universityImage.png
 │   ├── .env.example
 │   └── .env (local only)
 └── scripts/setup-local.sh
