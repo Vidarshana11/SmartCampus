@@ -33,7 +33,7 @@ import TicketManagementTab from '../components/admin/TicketManagementTab'
 import TicketUpdateTab from '../components/admin/TicketUpdateTab'
 import AnnouncementsTab from '../components/admin/AnnouncementsTab'
 import ReportsTab from '../components/admin/ReportsTab'
-import AdminSettingsTab from '../components/admin/AdminSettingsTab'
+import AccountManagement from './AccountManagement'
 import AdminNotificationBell from '../components/notifications/AdminNotificationBell'
 
 const TABS = [
@@ -264,7 +264,7 @@ export default function AdminPanel() {
       case 'reports':
         return <ReportsTab token={token} />
       case 'account':
-        return <AdminSettingsTab />
+        return <AccountManagement />
       default:
         return null
     }
