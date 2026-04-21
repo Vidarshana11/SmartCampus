@@ -144,16 +144,19 @@ public class ProfilePictureController {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
 
-        // Check if user has a password (non-OAuth user)
-        if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "Cannot change password for OAuth-authenticated users"));
-        }
+        boolean hasExistingPassword = user.getPasswordHash() != null && !user.getPasswordHash().isBlank();
 
-        // Validate old password
-        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Current password is incorrect"));
+        // Existing password flow: require and validate current password.
+        if (hasExistingPassword) {
+            if (request.currentPassword() == null || request.currentPassword().isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Current password is required"));
+            }
+
+            if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Current password is incorrect"));
+            }
         }
 
         // Validate new password
@@ -259,7 +262,6 @@ public class ProfilePictureController {
     ) {}
 
     public record ChangePasswordRequest(
-            @NotBlank(message = "Current password is required")
             String currentPassword,
 
             @NotBlank(message = "New password is required")

@@ -111,6 +111,13 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
+After the backend starts, a predefined admin account is automatically bootstrapped (email is already verified):
+
+- Email: `adminone@nust.lk`
+- Password: `Test1234`
+
+Use this account to sign in and create additional admin/user accounts.
+
 ### 5. Update backend local config
 Open `backend/src/main/resources/application.properties` and verify:
 ```properties
