@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -139,11 +140,10 @@ public class AuthController {
         user.setEmailVerified(true);
         user.setEmailVerifiedAt(LocalDateTime.now());
 
-        // Assign role (default to STUDENT if not provided or invalid)
         try {
-            user.setRole(Role.valueOf(request.role().toUpperCase()));
-        } catch (Exception e) {
-            user.setRole(Role.STUDENT);
+            user.setRole(resolveSelfRegistrationRole(request.role()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
 
         userRepository.save(user);
@@ -206,11 +206,10 @@ public class AuthController {
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .build();
 
-        // Assign role (default to USER if not provided or invalid)
         try {
-            user.setRole(Role.valueOf(request.role().toUpperCase()));
-        } catch (Exception e) {
-            user.setRole(Role.STUDENT);
+            user.setRole(resolveSelfRegistrationRole(request.role()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
 
         // Explicitly set as not verified (needs email verification)
@@ -223,7 +222,7 @@ public class AuthController {
         ));
     }
 
-    // ===== Admin Create User (Auto-verifies ADMIN accounts) =====
+    // ===== Admin Create User (Auto-verifies all admin-created accounts) =====
     @PostMapping("/admin/register")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> adminCreateUser(
@@ -249,25 +248,16 @@ public class AuthController {
         }
         user.setRole(assignedRole);
 
-        // Auto-verify email for ADMIN accounts created by admin
-        // Regular users still need email verification
-        if (assignedRole == Role.ADMIN) {
-            user.setEmailVerified(true);
-            user.setEmailVerifiedAt(LocalDateTime.now());
-            log.info("Admin {} created new admin account for {} - auto-verified", adminUser.getEmail(), request.email());
-        } else {
-            user.setEmailVerified(false);
-        }
+        // Accounts created by admin are trusted and pre-verified.
+        user.setEmailVerified(true);
+        user.setEmailVerifiedAt(LocalDateTime.now());
+        log.info("Admin {} created {} account for {} - auto-verified", adminUser.getEmail(), assignedRole, request.email());
 
         userRepository.save(user);
 
         // Build response
         Map<String, Object> response = new HashMap<>();
-        if (assignedRole == Role.ADMIN) {
-            response.put("message", "Admin account created successfully. Email is pre-verified.");
-        } else {
-            response.put("message", "User created successfully. They will need to verify their email.");
-        }
+        response.put("message", "User created successfully. Email is pre-verified.");
         response.put("user", buildUserMap(user));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -348,6 +338,25 @@ public class AuthController {
     }
 
     // ===== Helper =====
+    private Role resolveSelfRegistrationRole(String roleValue) {
+        if (roleValue == null || roleValue.isBlank()) {
+            return Role.STUDENT;
+        }
+
+        Role parsedRole;
+        try {
+            parsedRole = Role.valueOf(roleValue.toUpperCase(Locale.ROOT));
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Invalid role selected for self-registration.");
+        }
+
+        if (parsedRole != Role.STUDENT && parsedRole != Role.LECTURER) {
+            throw new IllegalArgumentException("Only STUDENT and LECTURER accounts can be created from Create Account.");
+        }
+
+        return parsedRole;
+    }
+
     private Map<String, Object> buildUserMap(User user) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", user.getId());

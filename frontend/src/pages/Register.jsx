@@ -120,7 +120,7 @@ export default function Register() {
           </div>
           <h1 className="text-4xl font-bold mb-4 text-center">Join {BRAND_FULL_NAME}</h1>
           <p className="text-lg text-white/80 text-center max-w-md">
-            Create your student account and get access to all campus resources and services.
+            Create your student or lecturer account and get access to all campus resources and services.
           </p>
           <div className="mt-12 space-y-4 text-left max-w-sm">
             {[
@@ -151,7 +151,7 @@ export default function Register() {
               <img src="/universityImage.png" alt="University logo" className="w-full h-full object-contain rounded-lg" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">{BRAND_FULL_NAME}</h1>
-            <p className="text-gray-600">Create your student account</p>
+            <p className="text-gray-600">Create your student or lecturer account</p>
           </div>
 
           <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
@@ -277,11 +277,9 @@ export default function Register() {
                       >
                         <option value="STUDENT">Student</option>
                         <option value="LECTURER">Lecturer</option>
-                        <option value="TECHNICIAN">Technician</option>
-                        <option value="MANAGER">Manager</option>
-                        <option value="ADMIN">Administrator</option>
                       </select>
                     </div>
+                    <p className="mt-1.5 text-xs text-gray-500">Other account types are created by admin.</p>
                   </div>
 
                   <div className="flex items-start gap-2">
