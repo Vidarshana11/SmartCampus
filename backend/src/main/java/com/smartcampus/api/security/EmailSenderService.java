@@ -17,6 +17,12 @@ public class EmailSenderService {
     @Value("${app.mail.from:no-reply@smartcampus.local}")
     private String fromAddress;
 
+    @Value("${spring.mail.username:}")
+    private String smtpUsername;
+
+    @Value("${spring.mail.password:}")
+    private String smtpPassword;
+
     public EmailSenderService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
@@ -68,6 +74,12 @@ public class EmailSenderService {
     }
 
     private void send(String toEmail, String subject, String body) {
+        if (!isSmtpConfigured()) {
+            log.warn("SMTP not configured; skipping email send. to={}, subject={}", toEmail, subject);
+            log.info("Email body (dev fallback): {}", body);
+            return;
+        }
+
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromAddress);
@@ -79,5 +91,16 @@ public class EmailSenderService {
             log.error("Email sending failed to {}", toEmail, ex);
             throw new IllegalStateException("Failed to send email. Please try again.");
         }
+    }
+
+    private boolean isSmtpConfigured() {
+        if (isPlaceholder(smtpUsername) || isPlaceholder(smtpPassword) || isPlaceholder(fromAddress)) {
+            return false;
+        }
+        return !smtpUsername.isBlank() && !smtpPassword.isBlank() && !fromAddress.isBlank();
+    }
+
+    private boolean isPlaceholder(String value) {
+        return value == null || value.contains("YOUR_");
     }
 }

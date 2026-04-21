@@ -45,7 +45,7 @@ export default function AppShell({ children }) {
   ]
 
   const serviceNavItems = [
-    { to: '#bookings', label: 'Facility Booking', icon: FaClipboardList },
+    { to: '/bookings', label: 'Facility Booking', icon: FaClipboardList },
     { to: '/tickets', label: 'Support Tickets', icon: FaTicketAlt },
     { to: '#library', label: 'Library', icon: FaBook },
   ]
