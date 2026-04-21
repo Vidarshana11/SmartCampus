@@ -83,7 +83,7 @@ export const deleteAdminUser = async (token, userId) => {
 /**
  * Create new user (Admin only)
  * POST /api/auth/admin/register
- * Regular users need email verification, ADMIN accounts are auto-verified
+ * Accounts created by admin are automatically email-verified
  */
 export const createAdminUser = async (token, { name, email, password, role = 'STUDENT' }) => {
   const res = await apiClient.post(
