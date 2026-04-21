@@ -1,6 +1,6 @@
 # Backend Resources Configuration
 
-This directory contains configuration files for the Smart Campus API backend.
+This directory contains configuration files for the National University of Smart Technologies API backend.
 
 ## Files
 
