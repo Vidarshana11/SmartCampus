@@ -56,6 +56,14 @@ app.password-reset.ttl-minutes=30
 app.password-reset.frontend-reset-url=http://localhost:5173/reset-password
 
 # ========================================
+# BOOTSTRAP ADMIN CONFIGURATION
+# ========================================
+app.bootstrap.admin.enabled=true
+app.bootstrap.admin.email=adminone@nust.lk
+app.bootstrap.admin.name=Admin One
+app.bootstrap.admin.password=Test1234
+
+# ========================================
 # EMAIL VERIFICATION CONFIGURATION
 # ========================================
 # New registrations receive a 6-digit code to verify their email
