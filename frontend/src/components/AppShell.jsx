@@ -7,8 +7,6 @@ import Navbar from './Navbar'
 import NotificationBell from './notifications/NotificationBell'
 import {
   FaHome,
-  FaCalendarAlt,
-  FaBook,
   FaTicketAlt,
   FaCog,
   FaSignOutAlt,
@@ -40,15 +38,8 @@ export default function AppShell({ children }) {
 
   const mainNavItems = [
     { to: '/resources', label: 'Resources', icon: FaBuilding },
-    { to: '#schedule', label: 'My Schedule', icon: FaCalendarAlt },
-    { to: '#courses', label: 'My Courses', icon: FaBook },
-    
-  ]
-
-  const serviceNavItems = [
     { to: '/bookings', label: 'Facility Booking', icon: FaClipboardList },
     { to: '/tickets', label: 'Support Tickets', icon: FaTicketAlt },
-    { to: '#library', label: 'Library', icon: FaBook },
   ]
 
   const adminNavItems = isAdmin
@@ -177,29 +168,6 @@ export default function AppShell({ children }) {
               ))}
             </nav>
 
-            {/* Services Navigation */}
-            <nav className="mt-6 space-y-1">
-              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Services
-              </div>
-              {serviceNavItems.map((item) => (
-                <NavLink
-                  key={item.label}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[#003366] text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`
-                  }
-                >
-                  <item.icon className="w-5 h-5" />
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
-
             {/* Admin Navigation */}
             {adminNavItems.length > 0 && (
               <nav className="mt-6 space-y-1">
@@ -281,7 +249,6 @@ export default function AppShell({ children }) {
               <ul className="space-y-2 text-sm">
                 <li><Link to="#" className="hover:text-[#c9a227]">Academic Calendar</Link></li>
                 <li><Link to="#" className="hover:text-[#c9a227]">Course Catalog</Link></li>
-                <li><Link to="#" className="hover:text-[#c9a227]">Library Services</Link></li>
               </ul>
             </div>
             <div>

@@ -2,86 +2,19 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
 import {
-  FaCalendarAlt,
-  FaBook,
-  FaClipboardCheck,
-  FaTicketAlt,
   FaBell,
   FaArrowRight,
   FaClock,
-  FaUser,
-  FaGraduationCap,
-  FaBuilding
+  FaCalendarCheck,
+  FaTicketAlt,
+  FaBuilding,
+  FaPlus,
 } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import { getAnnouncementUrgencyMeta, getDashboardAnnouncements } from '../services/notificationService'
-
-// Quick actions data
-const quickActions = [
-  {
-    title: 'My Schedule',
-    description: 'View classes & events',
-    icon: FaCalendarAlt,
-    color: 'bg-blue-500',
-    href: '#schedule',
-  },
-  {
-    title: 'Grades',
-    description: 'Check academic progress',
-    icon: FaClipboardCheck,
-    color: 'bg-green-500',
-    href: '#grades',
-  },
-  {
-    title: 'Library',
-    description: 'Books & resources',
-    icon: FaBook,
-    color: 'bg-purple-500',
-    href: '#library',
-  },
-  {
-    title: 'Support',
-    description: 'Submit tickets',
-    icon: FaTicketAlt,
-    color: 'bg-orange-500',
-    href: '#support',
-  },
-]
-
-// Upcoming events
-const upcomingEvents = [
-  {
-    id: 1,
-    title: 'Midterm Examination',
-    date: 'Mar 28',
-    time: '9:00 AM - 12:00 PM',
-    location: 'Exam Hall A',
-    type: 'exam',
-  },
-  {
-    id: 2,
-    title: 'Guest Lecture: AI in Education',
-    date: 'Mar 30',
-    time: '2:00 PM - 4:00 PM',
-    location: 'Lecture Theater 3',
-    type: 'lecture',
-  },
-  {
-    id: 3,
-    title: 'Student Club Meeting',
-    date: 'Apr 2',
-    time: '5:00 PM - 6:30 PM',
-    location: 'Student Center',
-    type: 'club',
-  },
-]
-
-// Recent grades/assignments
-const recentActivity = [
-  { id: 1, course: 'IT3030 - PAF', item: 'Assignment 2', grade: '85/100', status: 'graded', date: 'Mar 24' },
-  { id: 2, course: 'CS2012 - DSA', item: 'Lab Report 3', grade: 'Pending', status: 'pending', date: 'Mar 26' },
-  { id: 3, course: 'MA1012 - Calculus', item: 'Quiz 4', grade: '92/100', status: 'graded', date: 'Mar 22' },
-]
+import bookingService from '../services/bookingService'
+import ticketService from '../services/ticketService'
+import resourceService from '../services/resourceService'
 
 export default function Dashboard() {
   const { token, user } = useAuth()
@@ -90,6 +23,15 @@ export default function Dashboard() {
   const [announcements, setAnnouncements] = useState([])
   const [announcementsLoading, setAnnouncementsLoading] = useState(false)
   const [announcementsError, setAnnouncementsError] = useState('')
+  const [bookings, setBookings] = useState([])
+  const [tickets, setTickets] = useState([])
+  const [resources, setResources] = useState([])
+  const [dashboardLoading, setDashboardLoading] = useState(false)
+  const [dashboardErrors, setDashboardErrors] = useState({
+    bookings: '',
+    tickets: '',
+    resources: '',
+  })
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -103,6 +45,41 @@ export default function Dashboard() {
     if (!token) return undefined
 
     let cancelled = false
+    const loadDashboardData = async () => {
+      setDashboardLoading(true)
+      setDashboardErrors({ bookings: '', tickets: '', resources: '' })
+
+      const [bookingsResult, ticketsResult, resourcesResult] = await Promise.allSettled([
+        bookingService.getMyBookings(token),
+        ticketService.getTickets(token),
+        resourceService.getAllResources(token),
+      ])
+
+      if (cancelled) return
+
+      if (bookingsResult.status === 'fulfilled') {
+        setBookings(bookingsResult.value)
+      } else {
+        setDashboardErrors((prev) => ({ ...prev, bookings: 'Unable to load bookings' }))
+      }
+
+      if (ticketsResult.status === 'fulfilled') {
+        setTickets(ticketsResult.value)
+      } else {
+        setDashboardErrors((prev) => ({ ...prev, tickets: 'Unable to load tickets' }))
+      }
+
+      if (resourcesResult.status === 'fulfilled') {
+        setResources(resourcesResult.value)
+      } else {
+        setDashboardErrors((prev) => ({ ...prev, resources: 'Unable to load resources' }))
+      }
+
+      setDashboardLoading(false)
+    }
+
+    loadDashboardData()
+
     const loadAnnouncements = async (showLoading) => {
       if (showLoading) setAnnouncementsLoading(true)
       try {
@@ -137,257 +114,304 @@ export default function Dashboard() {
     return new Date(dateString).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
   }
 
+  const formatBookingDateTime = (dateString) => {
+    if (!dateString) return ''
+    return new Date(dateString).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  }
+
+  const upcomingBookings = bookings
+    .filter((booking) => (
+      booking.startTime
+      && new Date(booking.startTime) > new Date()
+      && booking.status !== 'CANCELLED'
+      && booking.status !== 'REJECTED'
+    ))
+    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+    .slice(0, 4)
+
+  const openTicketsCount = tickets.filter((ticket) => ticket.status === 'OPEN').length
+  const inProgressTicketsCount = tickets.filter((ticket) => ticket.status === 'IN_PROGRESS').length
+  const resolvedTicketsCount = tickets.filter((ticket) => ticket.status === 'RESOLVED').length
+  const activeTicketCount = openTicketsCount + inProgressTicketsCount
+  const activeResourcesCount = resources.filter((resource) => resource.status === 'ACTIVE').length
+  const roomCount = resources.filter((resource) => resource.type === 'ROOM').length
+  const labCount = resources.filter((resource) => resource.type === 'LAB').length
+  const equipmentCount = resources.filter((resource) => resource.type === 'EQUIPMENT').length
+
+  const getMetricValue = (value) => (dashboardLoading ? '...' : value)
+
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-[#003366] to-[#004080] rounded-2xl p-6 text-white shadow-lg">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="bg-gradient-to-r from-[#0b3f6e] via-[#0d5a8c] to-[#137a8a] rounded-2xl p-6 text-white shadow-lg border border-white/20">
+        <div className="flex flex-col gap-4">
           <div>
             <h1 className="text-2xl font-bold">
               {getGreeting()}, {userName}! 👋
             </h1>
-            <p className="text-white/80 mt-1">
+            <p className="text-blue-50/90 mt-1">
               Welcome back to your portal. Check the latest announcements below.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2">
-              <div className="text-xs text-white/70">Current Semester</div>
-              <div className="font-semibold">Spring 2026</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2">
-              <div className="text-xs text-white/70">Student ID</div>
-              <div className="font-semibold">STU-{user?.id || '000000'}</div>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Quick Actions Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {quickActions.map((action) => (
-          <Link
-            key={action.title}
-            to={action.href}
-            className="group bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md hover:border-[#003366]/30 transition-all"
-          >
-            <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center text-white mb-3 group-hover:scale-110 transition-transform`}>
-              <action.icon className="w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-gray-900">{action.title}</h3>
-            <p className="text-sm text-gray-500">{action.description}</p>
-          </Link>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-sky-50 to-blue-100 rounded-xl border border-blue-200 p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-blue-800">My Bookings</span>
+            <FaCalendarCheck className="text-blue-700" />
+          </div>
+          <div className="text-3xl font-bold text-blue-950">{getMetricValue(bookings.length)}</div>
+          {dashboardErrors.bookings && <p className="text-xs text-red-600 mt-2">{dashboardErrors.bookings}</p>}
+        </div>
+
+        <div className="bg-gradient-to-br from-orange-50 to-amber-100 rounded-xl border border-amber-200 p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-amber-800">Active Tickets</span>
+            <FaTicketAlt className="text-amber-700" />
+          </div>
+          <div className="text-3xl font-bold text-amber-950">{getMetricValue(activeTicketCount)}</div>
+          {dashboardErrors.tickets && <p className="text-xs text-red-600 mt-2">{dashboardErrors.tickets}</p>}
+        </div>
+
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-100 rounded-xl border border-teal-200 p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-teal-800">Resources Available</span>
+            <FaBuilding className="text-teal-700" />
+          </div>
+          <div className="text-3xl font-bold text-teal-950">{getMetricValue(activeResourcesCount)}</div>
+          {dashboardErrors.resources && <p className="text-xs text-red-600 mt-2">{dashboardErrors.resources}</p>}
+        </div>
+
+        <div className="bg-gradient-to-br from-violet-50 to-indigo-100 rounded-xl border border-indigo-200 p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-indigo-800">Latest Announcements</span>
+            <FaBell className="text-indigo-700" />
+          </div>
+          <div className="text-3xl font-bold text-indigo-950">{announcementsLoading ? '...' : announcements.length}</div>
+          {announcementsError && <p className="text-xs text-red-600 mt-2">{announcementsError}</p>}
+        </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Announcements - Takes up 2 columns */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <FaBell className="text-[#c9a227]" />
-              Announcements
-            </h2>
-            <Link to="#" className="text-sm text-[#003366] hover:underline font-medium flex items-center gap-1">
-              View all <FaArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <FaBell className="text-indigo-600" />
+            Announcements
+          </h2>
+          <Link to="/announcements" className="text-sm text-[#0d4f82] hover:underline font-medium flex items-center gap-1">
+            View all <FaArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
 
-          <div className="space-y-3">
-            {announcementsLoading && (
-              <div className="bg-white rounded-xl p-4 border border-gray-200 text-sm text-gray-600">
-                Loading announcements...
-              </div>
-            )}
+        <div className="space-y-3">
+          {announcementsLoading && (
+            <div className="bg-white rounded-xl p-4 border border-slate-200 text-sm text-slate-600">
+              Loading announcements...
+            </div>
+          )}
 
-            {!announcementsLoading && announcementsError && (
-              <div className="bg-red-50 rounded-xl p-4 border border-red-200 text-sm text-red-700">
-                {announcementsError}
-              </div>
-            )}
+          {!announcementsLoading && announcementsError && (
+            <div className="bg-red-50 rounded-xl p-4 border border-red-200 text-sm text-red-700">
+              {announcementsError}
+            </div>
+          )}
 
-            {!announcementsLoading && !announcementsError && announcements.length === 0 && (
-              <div className="bg-white rounded-xl p-4 border border-gray-200 text-sm text-gray-600">
-                No announcements available right now.
-              </div>
-            )}
+          {!announcementsLoading && !announcementsError && announcements.length === 0 && (
+            <div className="bg-white rounded-xl p-4 border border-slate-200 text-sm text-slate-600">
+              No announcements available right now.
+            </div>
+          )}
 
-            {!announcementsLoading && !announcementsError && announcements.map((announcement) => {
-              const urgencyMeta = getAnnouncementUrgencyMeta(announcement.type)
-              return (
-                <div
-                  key={announcement.id}
-                  className={`bg-white rounded-xl p-4 border-l-4 shadow-sm hover:shadow-md transition-shadow ${
-                    urgencyMeta.borderClass
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          urgencyMeta.chipClass
-                        }`}>
-                          {urgencyMeta.label}
-                        </span>
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                          Announcement
-                        </span>
-                      </div>
-                      <h3 className="font-semibold text-gray-900 mb-1">{announcement.title}</h3>
-                      <p className="text-sm text-gray-600">{announcement.message}</p>
+          {!announcementsLoading && !announcementsError && announcements.map((announcement) => {
+            const urgencyMeta = getAnnouncementUrgencyMeta(announcement.type)
+            return (
+              <div
+                key={announcement.id}
+                className={`bg-gradient-to-r from-white to-slate-50 rounded-xl p-4 border-l-4 shadow-sm hover:shadow-md transition-shadow ${
+                  urgencyMeta.borderClass
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        urgencyMeta.chipClass
+                      }`}>
+                        {urgencyMeta.label}
+                      </span>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                        Announcement
+                      </span>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatAnnouncementDate(announcement.createdAt)}
-                      </div>
-                      <div className="text-xs text-gray-500 flex items-center gap-1">
-                        <FaClock className="w-3 h-3" /> {formatAnnouncementTime(announcement.createdAt)}
-                      </div>
+                    <h3 className="font-semibold text-slate-900 mb-1">{announcement.title}</h3>
+                    <p className="text-sm text-slate-600">{announcement.message}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-sm font-medium text-slate-900">
+                      {formatAnnouncementDate(announcement.createdAt)}
+                    </div>
+                    <div className="text-xs text-slate-500 flex items-center gap-1">
+                      <FaClock className="w-3 h-3" /> {formatAnnouncementTime(announcement.createdAt)}
                     </div>
                   </div>
                 </div>
-              )
-            })}
-          </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
 
-          {/* Recent Activity / Grades */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <FaGraduationCap className="text-[#c9a227]" />
-                Recent Activity
-              </h2>
-              <Link to="#" className="text-sm text-[#003366] hover:underline font-medium">
-                View all grades
-              </Link>
-            </div>
-
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Course</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Item</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Grade</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {recentActivity.map((activity) => (
-                    <tr key={activity.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{activity.course}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{activity.item}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          activity.status === 'graded'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {activity.grade}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 text-right">{activity.date}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-[#0f3d63] to-[#136f8f] rounded-xl border border-cyan-600/40 p-4 shadow-md">
+          <h2 className="text-base font-semibold text-white mb-4">Quick Actions</h2>
+          <div className="space-y-2">
+            <Link
+              to="/bookings/create"
+              className="flex items-center justify-between rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm font-medium text-white hover:bg-white/20"
+            >
+              <span className="flex items-center gap-2">
+                <FaPlus className="text-cyan-200" />
+                New Booking
+              </span>
+              <FaArrowRight className="w-3 h-3" />
+            </Link>
+            <Link
+              to="/tickets/create"
+              className="flex items-center justify-between rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm font-medium text-white hover:bg-white/20"
+            >
+              <span className="flex items-center gap-2">
+                <FaPlus className="text-cyan-200" />
+                Report Incident
+              </span>
+              <FaArrowRight className="w-3 h-3" />
+            </Link>
+            <Link
+              to="/resources"
+              className="flex items-center justify-between rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm font-medium text-white hover:bg-white/20"
+            >
+              <span className="flex items-center gap-2">
+                <FaBuilding className="text-cyan-200" />
+                Browse Resources
+              </span>
+              <FaArrowRight className="w-3 h-3" />
+            </Link>
+            <Link
+              to="/announcements"
+              className="flex items-center justify-between rounded-lg border border-white/20 bg-white/10 px-3 py-2.5 text-sm font-medium text-white hover:bg-white/20"
+            >
+              <span className="flex items-center gap-2">
+                <FaBell className="text-cyan-200" />
+                View Announcements
+              </span>
+              <FaArrowRight className="w-3 h-3" />
+            </Link>
           </div>
         </div>
 
-        {/* Right Sidebar - Events & Info */}
-        <div className="space-y-6">
-          {/* Upcoming Events */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <FaCalendarAlt className="text-[#c9a227]" />
-              Upcoming Events
-            </h2>
-            <div className="space-y-3">
-              {upcomingEvents.map((event) => (
-                <div key={event.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex-shrink-0 w-12 h-12 bg-[#003366] text-white rounded-lg flex flex-col items-center justify-center">
-                    <span className="text-xs font-medium uppercase">{event.date.split(' ')[0]}</span>
-                    <span className="text-lg font-bold leading-none">{event.date.split(' ')[1]}</span>
+        <div className="bg-gradient-to-br from-cyan-50 to-white rounded-xl border border-cyan-200 p-4 shadow-sm xl:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-slate-900">Upcoming Bookings</h2>
+            <Link to="/bookings" className="text-sm text-[#0d4f82] hover:underline font-medium">See all</Link>
+          </div>
+
+          {dashboardErrors.bookings && (
+            <div className="bg-red-50 rounded-lg p-3 border border-red-200 text-sm text-red-700">
+              {dashboardErrors.bookings}
+            </div>
+          )}
+
+          {!dashboardErrors.bookings && dashboardLoading && (
+            <div className="text-sm text-gray-600">Loading upcoming bookings...</div>
+          )}
+
+          {!dashboardErrors.bookings && !dashboardLoading && upcomingBookings.length === 0 && (
+            <div className="text-sm text-gray-600">No upcoming bookings yet.</div>
+          )}
+
+          {!dashboardErrors.bookings && !dashboardLoading && upcomingBookings.length > 0 && (
+            <div className="space-y-2">
+              {upcomingBookings.map((booking) => (
+                <div key={booking.id} className="rounded-lg border border-cyan-200 bg-white p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-slate-900">{booking.resourceName}</p>
+                      <p className="text-xs text-slate-600">{booking.purpose}</p>
+                    </div>
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-cyan-100 text-cyan-800">
+                      {booking.status}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 text-sm truncate">{event.title}</h4>
-                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                      <FaClock className="w-3 h-3" /> {event.time}
-                    </p>
-                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                      <FaBuilding className="w-3 h-3" /> {event.location}
-                    </p>
-                  </div>
+                  <p className="text-xs text-slate-500 mt-2">Starts: {formatBookingDateTime(booking.startTime)}</p>
                 </div>
               ))}
             </div>
-            <Link
-              to="#"
-              className="mt-4 block text-center text-sm text-[#003366] hover:underline font-medium py-2 border border-dashed border-gray-300 rounded-lg hover:border-[#003366]/30"
-            >
-              View full calendar
-            </Link>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-orange-50 to-white rounded-xl border border-orange-200 p-4 shadow-sm xl:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-slate-900">Ticket Snapshot</h2>
+            <Link to="/tickets" className="text-sm text-[#9a3412] hover:underline font-medium">Manage tickets</Link>
           </div>
 
-          {/* Campus Resources */}
-          <div className="bg-gradient-to-br from-[#003366] to-[#004080] rounded-xl p-4 text-white shadow-md">
-            <h3 className="font-bold mb-3 flex items-center gap-2">
-              <FaBuilding className="text-[#c9a227]" />
-              Campus Resources
-            </h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link to="#" className="flex items-center gap-2 text-white/90 hover:text-white">
-                  <FaBook className="w-4 h-4" /> Library Catalogue
-                </Link>
-              </li>
-              <li>
-                <Link to="#" className="flex items-center gap-2 text-white/90 hover:text-white">
-                  <FaBuilding className="w-4 h-4" /> Room Booking
-                </Link>
-              </li>
-              <li>
-                <Link to="#" className="flex items-center gap-2 text-white/90 hover:text-white">
-                  <FaTicketAlt className="w-4 h-4" /> IT Help Desk
-                </Link>
-              </li>
-              <li>
-                <Link to="#" className="flex items-center gap-2 text-white/90 hover:text-white">
-                  <FaUser className="w-4 h-4" /> Academic Advising
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {dashboardErrors.tickets && (
+            <div className="bg-red-50 rounded-lg p-3 border border-red-200 text-sm text-red-700">
+              {dashboardErrors.tickets}
+            </div>
+          )}
 
-          {/* System Status */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <h3 className="font-bold text-gray-900 mb-3">System Status</h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Student Portal</span>
-                <span className="flex items-center gap-1.5 text-green-600">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  Online
-                </span>
+          {!dashboardErrors.tickets && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <div className="text-xs text-amber-700">Open</div>
+                <div className="text-xl font-semibold text-amber-900">{getMetricValue(openTicketsCount)}</div>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Library System</span>
-                <span className="flex items-center gap-1.5 text-green-600">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  Online
-                </span>
+              <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                <div className="text-xs text-orange-700">In Progress</div>
+                <div className="text-xl font-semibold text-orange-900">{getMetricValue(inProgressTicketsCount)}</div>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Email Services</span>
-                <span className="flex items-center gap-1.5 text-yellow-600">
-                  <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                  Maintenance
-                </span>
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                <div className="text-xs text-emerald-700">Resolved</div>
+                <div className="text-xl font-semibold text-emerald-900">{getMetricValue(resolvedTicketsCount)}</div>
               </div>
             </div>
-          </div>
+          )}
+        </div>
+
+        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-xl border border-emerald-200 p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-slate-900 mb-4">Resource Mix</h2>
+
+          {dashboardErrors.resources && (
+            <div className="bg-red-50 rounded-lg p-3 border border-red-200 text-sm text-red-700">
+              {dashboardErrors.resources}
+            </div>
+          )}
+
+          {!dashboardErrors.resources && (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between rounded-lg bg-emerald-100/70 px-3 py-2">
+                <span className="text-emerald-800">Rooms</span>
+                <span className="font-semibold text-emerald-950">{getMetricValue(roomCount)}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-teal-100/70 px-3 py-2">
+                <span className="text-teal-800">Labs</span>
+                <span className="font-semibold text-teal-950">{getMetricValue(labCount)}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-cyan-100/70 px-3 py-2">
+                <span className="text-cyan-800">Equipment</span>
+                <span className="font-semibold text-cyan-950">{getMetricValue(equipmentCount)}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
