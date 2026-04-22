@@ -1,16 +1,20 @@
 package com.smartcampus.api.booking;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.smartcampus.api.notification.NotificationService;
+import com.smartcampus.api.notification.NotificationType;
 import com.smartcampus.api.resource.Resource;
 import com.smartcampus.api.resource.ResourceRepository;
 import com.smartcampus.api.user.User;
 import com.smartcampus.api.user.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +23,7 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<BookingDTO> getAllBookings() {
@@ -115,6 +120,17 @@ public class BookingService {
         booking.setReviewedAt(LocalDateTime.now());
 
         Booking savedBooking = bookingRepository.save(booking);
+
+        notificationService.createBookingNotification(
+            savedBooking.getUser().getId(),
+            "Booking approved",
+            "Your booking for " + savedBooking.getResource().getName()
+                + " from " + savedBooking.getStartTime() + " to " + savedBooking.getEndTime()
+                + " has been approved.",
+            NotificationType.SUCCESS,
+            savedBooking.getId()
+        );
+
         return convertToDTO(savedBooking);
     }
 
@@ -140,6 +156,17 @@ public class BookingService {
         booking.setReviewedAt(LocalDateTime.now());
 
         Booking savedBooking = bookingRepository.save(booking);
+
+        notificationService.createBookingNotification(
+            savedBooking.getUser().getId(),
+            "Booking rejected",
+            "Your booking for " + savedBooking.getResource().getName()
+                + " from " + savedBooking.getStartTime() + " to " + savedBooking.getEndTime()
+                + " was rejected. Reason: " + reason,
+            NotificationType.ERROR,
+            savedBooking.getId()
+        );
+
         return convertToDTO(savedBooking);
     }
 
@@ -165,6 +192,17 @@ public class BookingService {
 
         booking.setStatus(BookingStatus.CANCELLED);
         Booking savedBooking = bookingRepository.save(booking);
+
+        notificationService.createBookingNotification(
+            savedBooking.getUser().getId(),
+            "Booking cancelled",
+            "Your booking for " + savedBooking.getResource().getName()
+                + " from " + savedBooking.getStartTime() + " to " + savedBooking.getEndTime()
+                + " has been cancelled.",
+            NotificationType.WARNING,
+            savedBooking.getId()
+        );
+
         return convertToDTO(savedBooking);
     }
 

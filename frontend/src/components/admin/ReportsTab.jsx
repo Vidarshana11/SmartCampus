@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { getAdminStats, getUserStatsbyRole, getBookingStats } from '../../services/adminService'
 import { FaSpinner, FaDownload } from 'react-icons/fa'
@@ -9,34 +9,66 @@ export default function ReportsTab({ token }) {
   const [adminStats, setAdminStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
+  const [refreshingBookings, setRefreshingBookings] = useState(false)
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
+  const refreshReports = useCallback(async ({ refreshBookingsOnly = false } = {}) => {
+    try {
+      if (!refreshBookingsOnly) {
         setLoading(true)
-        setError(null)
-
-        const [users, bookings, stats] = await Promise.all([
-          getUserStatsbyRole(token),
-          getBookingStats(token),
-          getAdminStats(token),
-        ])
-
-        setUserStats(users)
-        setBookingStats(bookings)
-        setAdminStats(stats)
-      } catch (err) {
-        console.error('Failed to fetch reports:', err)
-        setError('Failed to load reports. Please try again.')
-      } finally {
-        setLoading(false)
+      } else {
+        setRefreshingBookings(true)
       }
-    }
+      setError(null)
 
-    if (token) {
-      fetchStats()
+      if (refreshBookingsOnly) {
+        const bookings = await getBookingStats(token)
+        setBookingStats(bookings)
+        setLastUpdated(new Date())
+        return
+      }
+
+      const [users, bookings, stats] = await Promise.all([
+        getUserStatsbyRole(token),
+        getBookingStats(token),
+        getAdminStats(token),
+      ])
+
+      setUserStats(users)
+      setBookingStats(bookings)
+      setAdminStats(stats)
+      setLastUpdated(new Date())
+    } catch (err) {
+      console.error('Failed to fetch reports:', err)
+      setError('Failed to load reports. Please try again.')
+    } finally {
+      setLoading(false)
+      setRefreshingBookings(false)
     }
   }, [token])
+
+  useEffect(() => {
+    if (token) {
+      refreshReports()
+
+      const intervalId = setInterval(() => {
+        refreshReports({ refreshBookingsOnly: true })
+      }, 5000)
+
+      return () => clearInterval(intervalId)
+    }
+    return undefined
+  }, [token, refreshReports])
+
+  const bookingStatusData = useMemo(
+    () => [
+      { name: 'Pending', value: bookingStats?.PENDING || 0, fill: '#F59E0B' },
+      { name: 'Approved', value: bookingStats?.APPROVED || 0, fill: '#10B981' },
+      { name: 'Rejected', value: bookingStats?.REJECTED || 0, fill: '#EF4444' },
+      { name: 'Cancelled', value: bookingStats?.CANCELLED || 0, fill: '#6B7280' },
+    ],
+    [bookingStats]
+  )
 
   if (loading) {
     return (
@@ -72,13 +104,6 @@ export default function ReportsTab({ token }) {
         { name: 'Admins', value: 5, color: '#EF4444' },
       ]
 
-  const bookingStatusData = bookingStats?.byStatus || [
-    { name: 'Pending', value: 42, fill: '#F59E0B' },
-    { name: 'Approved', value: 156, fill: '#10B981' },
-    { name: 'Rejected', value: 28, fill: '#EF4444' },
-    { name: 'Cancelled', value: 12, fill: '#6B7280' },
-  ]
-
   const resourceTypeData = [
     { type: 'Lecture Halls', count: 12, utilization: 85 },
     { type: 'Labs', count: 8, utilization: 72 },
@@ -96,6 +121,11 @@ export default function ReportsTab({ token }) {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Analytics & Reports</h1>
           <p className="text-gray-600 text-sm mt-1">Campus operations analytics and insights</p>
+          {lastUpdated && (
+            <p className="text-xs text-gray-500 mt-1">
+              Live updates every 5 seconds{refreshingBookings ? ' - refreshing bookings...' : ` - last updated ${lastUpdated.toLocaleTimeString()}`}
+            </p>
+          )}
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
           <FaDownload className="w-4 h-4" />

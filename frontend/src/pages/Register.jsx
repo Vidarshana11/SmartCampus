@@ -114,12 +114,12 @@ export default function Register() {
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#003366] via-[#004080] to-[#005299] relative">
         <div className="absolute inset-0 bg-black/20" />
         <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-12">
-          <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-2xl">
-            <FaGraduationCap className="w-12 h-12 text-[#003366]" />
+          <div className="w-28 h-28 bg-white rounded-2xl p-2 flex items-center justify-center mb-6 shadow-2xl ring-4 ring-white/30">
+            <img src="/universityImage.png" alt="University logo" className="w-full h-full object-contain rounded-xl" />
           </div>
-          <h1 className="text-4xl font-bold mb-4 text-center">Join Smart Campus!</h1>
+          <h1 className="text-4xl font-bold mb-4 text-center">Join {BRAND_FULL_NAME}</h1>
           <p className="text-lg text-white/80 text-center max-w-md">
-            Create your student account and get access to all campus resources and services.
+            Create your student or lecturer account and get access to all campus resources and services.
           </p>
           <div className="mt-12 space-y-4 text-left max-w-sm">
             {[
@@ -129,8 +129,8 @@ export default function Register() {
               'Connect with campus community',
             ].map((feature, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="w-6 h-6 bg-[#c9a227] rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3 h-3 text-[#003366]" fill="currentColor" viewBox="0 0 20 20">
+                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
@@ -146,11 +146,11 @@ export default function Register() {
         <div className="w-full max-w-md my-8">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="w-16 h-16 bg-[#003366] rounded-xl flex items-center justify-center mx-auto mb-4">
-              <FaGraduationCap className="w-8 h-8 text-[#c9a227]" />
+            <div className="w-24 h-24 bg-white rounded-xl p-2 flex items-center justify-center mx-auto mb-4 shadow-lg ring-2 ring-[#003366]/20">
+              <img src="/universityImage.png" alt="University logo" className="w-full h-full object-contain rounded-lg" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Smart Campus</h1>
-            <p className="text-gray-600">Create your student account</p>
+            <h1 className="text-2xl font-bold text-gray-900">{BRAND_FULL_NAME}</h1>
+            <p className="text-gray-600">Create your student or lecturer account</p>
           </div>
 
           <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">

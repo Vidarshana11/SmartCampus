@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import ticketService from '../services/ticketService'
@@ -62,12 +62,7 @@ export default function TicketDetails() {
 
   const isAdmin = user?.role === 'ADMIN'
 
-  useEffect(() => {
-    fetchTicket()
-    if (isAdmin) fetchTechnicians()
-  }, [id, token])
-
-  const fetchTicket = async () => {
+  const fetchTicket = useCallback(async () => {
     try {
       setLoading(true)
       const data = await ticketService.getTicketById(token, id)
@@ -78,16 +73,21 @@ export default function TicketDetails() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token, id])
 
-  const fetchTechnicians = async () => {
+  const fetchTechnicians = useCallback(async () => {
     try {
       const data = await ticketService.getTechnicians(token)
       setTechnicians(data)
     } catch (err) {
       console.error('Failed to fetch technicians:', err)
     }
-  }
+  }, [token])
+
+  useEffect(() => {
+    fetchTicket()
+    if (isAdmin) fetchTechnicians()
+  }, [isAdmin, fetchTicket, fetchTechnicians])
 
   const handleStatusUpdate = async (newStatus) => {
     if (newStatus === 'REJECTED') {

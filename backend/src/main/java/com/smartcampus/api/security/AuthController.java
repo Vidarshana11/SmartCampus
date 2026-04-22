@@ -1,24 +1,30 @@
 package com.smartcampus.api.security;
 
-import com.smartcampus.api.security.dto.ForgotPasswordRequest;
-import com.smartcampus.api.security.dto.ResetPasswordRequest;
-import com.smartcampus.api.user.Role;
-import com.smartcampus.api.user.User;
-import com.smartcampus.api.user.UserRepository;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import com.smartcampus.api.security.dto.ForgotPasswordRequest;
+import com.smartcampus.api.security.dto.ResetPasswordRequest;
+import com.smartcampus.api.user.Role;
+import com.smartcampus.api.user.User;
+import com.smartcampus.api.user.UserRepository;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Authentication controller for local registration & login.
@@ -206,7 +212,6 @@ public class AuthController {
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .build();
 
-        // Assign role (default to USER if not provided or invalid)
         try {
             user.setRole(Role.valueOf(request.role().toUpperCase()));
         } catch (Exception e) {
@@ -223,7 +228,9 @@ public class AuthController {
         ));
     }
 
-    // ===== Admin Create User (Auto-verifies ADMIN accounts) =====
+
+
+    // ===== Admin Create User (Auto-verifies all admin-created accounts) =====
     @PostMapping("/admin/register")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> adminCreateUser(
@@ -249,15 +256,10 @@ public class AuthController {
         }
         user.setRole(assignedRole);
 
-        // Auto-verify email for ADMIN accounts created by admin
-        // Regular users still need email verification
-        if (assignedRole == Role.ADMIN) {
-            user.setEmailVerified(true);
-            user.setEmailVerifiedAt(LocalDateTime.now());
-            log.info("Admin {} created new admin account for {} - auto-verified", adminUser.getEmail(), request.email());
-        } else {
-            user.setEmailVerified(false);
-        }
+        // Accounts created by admin are trusted and pre-verified.
+        user.setEmailVerified(true);
+        user.setEmailVerifiedAt(LocalDateTime.now());
+        log.info("Admin {} created {} account for {} - auto-verified", adminUser.getEmail(), assignedRole, request.email());
 
         userRepository.save(user);
 

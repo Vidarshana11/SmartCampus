@@ -14,6 +14,7 @@ import './NotificationBell.css'
  */
 export default function NotificationBell({ tone = 'light' }) {
   const { token, user } = useAuth()
+  const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
   const [recentNotifications, setRecentNotifications] = useState([])
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)

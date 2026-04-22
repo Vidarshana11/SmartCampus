@@ -1,14 +1,14 @@
 package com.smartcampus.api.config;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Web MVC Configuration
@@ -45,7 +45,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
                     .setCachePeriod(3600);
         } catch (Exception e) {
             System.err.println("Error configuring upload directory: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 }

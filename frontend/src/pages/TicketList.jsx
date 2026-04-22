@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import ticketService from '../services/ticketService'
@@ -34,11 +34,7 @@ export default function TicketList({ hideHeader = false }) {
   const [statusFilter, setStatusFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
 
-  useEffect(() => {
-    fetchTickets()
-  }, [token])
-
-  const fetchTickets = async () => {
+  const fetchTickets = useCallback(async () => {
     try {
       setLoading(true)
       setError('')
@@ -50,7 +46,11 @@ export default function TicketList({ hideHeader = false }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token])
+
+  useEffect(() => {
+    fetchTickets()
+  }, [fetchTickets])
 
   const filteredTickets = tickets.filter(t => {
     if (statusFilter && t.status !== statusFilter) return false
