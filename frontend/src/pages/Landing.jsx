@@ -100,7 +100,7 @@ export default function Landing() {
                 <FaGraduationCap className="w-6 h-6 text-[#c9a227]" />
               </div>
               <div>
-                <span className="text-[#003366] font-bold text-lg">Smart Campus</span>
+                <span className="text-[#003366] font-bold text-lg">{BRAND_SHORT_NAME}</span>
                 <span className="text-gray-400 mx-2">|</span>
                 <span className="text-gray-600 text-sm">Student Portal</span>
               </div>
@@ -148,7 +148,7 @@ export default function Landing() {
               </h1>
 
               <p className="text-lg text-white/90 mb-8 leading-relaxed max-w-lg">
-                Access your courses, book facilities, track grades, and stay connected with campus life—all in one secure platform designed for modern students.
+                {BRAND_FULL_NAME} gives you one secure platform to access courses, book facilities, track grades, and stay connected with campus life.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
@@ -299,7 +299,7 @@ export default function Landing() {
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">Ready to Get Started?</h2>
             <p className="text-lg text-white/80 mb-8">
-              Join thousands of students already using Smart Campus to manage their academic journey.
+              Join thousands of students already using {BRAND_FULL_NAME} to manage their academic journey.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
@@ -329,7 +329,7 @@ export default function Landing() {
                 <div className="w-10 h-10 bg-[#c9a227] rounded-lg flex items-center justify-center">
                   <FaGraduationCap className="w-6 h-6 text-[#003366]" />
                 </div>
-                <span className="font-bold text-lg">Smart Campus</span>
+                <span className="font-bold text-lg">{BRAND_FULL_NAME}</span>
               </div>
               <p className="text-gray-400 text-sm">
                 Empowering students with modern tools for academic success.
@@ -361,7 +361,7 @@ export default function Landing() {
               <ul className="space-y-3 text-sm text-gray-400">
                 <li className="flex items-center gap-2">
                   <FaEnvelope className="w-4 h-4" />
-                  support@smartcampus.edu
+                  support@nust.edu
                 </li>
                 <li className="flex items-center gap-2">
                   <FaPhone className="w-4 h-4" />
@@ -377,7 +377,7 @@ export default function Landing() {
 
           <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-gray-400">
-              © 2026 Smart Campus. All rights reserved.
+              © 2026 {BRAND_FULL_NAME}. All rights reserved.
             </p>
             <p className="text-sm text-gray-400">
               IT3030 – Programming Applications and Frameworks

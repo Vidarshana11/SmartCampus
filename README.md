@@ -1,4 +1,4 @@
-# Smart Campus Operations Hub
+# National University of Smart Technologies Operations Hub
 
 <p align="center">
   <img src="./frontend/public/campus-white-bg.png" alt="Smart Campus banner" width="920">
