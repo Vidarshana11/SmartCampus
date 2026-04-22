@@ -45,7 +45,7 @@ export default function AppShell({ children }) {
   ]
 
   const serviceNavItems = [
-    { to: '#bookings', label: 'Facility Booking', icon: FaClipboardList },
+    { to: '/bookings', label: 'Facility Booking', icon: FaClipboardList },
     { to: '/tickets', label: 'Support Tickets', icon: FaTicketAlt },
     { to: '#library', label: 'Library', icon: FaBook },
   ]
@@ -89,11 +89,11 @@ export default function AppShell({ children }) {
               </button>
 
               <Link to="/dashboard" className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md">
-                  <FaGraduationCap className="w-6 h-6 text-[#003366]" />
+                <div className="w-10 h-10 bg-white rounded-lg p-1 flex items-center justify-center shadow-md">
+                  <img src="/universityImage.png" alt="University logo" className="w-full h-full object-contain rounded-md" />
                 </div>
                 <div className="hidden sm:block">
-                  <div className="text-white font-bold text-lg leading-tight">Smart Campus</div>
+                  <div className="text-white font-bold text-lg leading-tight">{BRAND_SHORT_NAME}</div>
                   <div className="text-white/60 text-xs">Student Portal</div>
                 </div>
               </Link>
@@ -271,7 +271,7 @@ export default function AppShell({ children }) {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <FaGraduationCap className="w-6 h-6 text-[#c9a227]" />
-                <span className="font-bold text-white">Smart Campus</span>
+                <span className="font-bold text-white">{BRAND_FULL_NAME}</span>
               </div>
               <p className="text-sm">Empowering students with modern campus management tools.</p>
             </div>
@@ -301,7 +301,7 @@ export default function AppShell({ children }) {
             </div>
           </div>
           <div className="border-t border-white/10 mt-8 pt-8 text-center text-sm">
-            © 2026 Smart Campus. All rights reserved. IT3030 – Programming Applications and Frameworks
+            © 2026 {BRAND_FULL_NAME}. All rights reserved. IT3030 – Programming Applications and Frameworks
           </div>
         </div>
       </footer>
