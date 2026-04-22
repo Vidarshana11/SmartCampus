@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../auth/AuthProvider'
 import ticketService from '../../services/ticketService'
 import { FaEdit, FaTrash, FaPaperPlane, FaSpinner } from 'react-icons/fa'
@@ -14,11 +14,7 @@ export default function CommentSection({ ticketId }) {
 
   const isAdmin = user?.role === 'ADMIN'
 
-  useEffect(() => {
-    fetchComments()
-  }, [ticketId])
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       setLoading(true)
       const data = await ticketService.getComments(token, ticketId)
@@ -28,7 +24,11 @@ export default function CommentSection({ ticketId }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token, ticketId])
+
+  useEffect(() => {
+    fetchComments()
+  }, [fetchComments])
 
   const handleAdd = async () => {
     if (!newComment.trim() || submitting) return

@@ -83,7 +83,7 @@ export const deleteAdminUser = async (token, userId) => {
 /**
  * Create new user (Admin only)
  * POST /api/auth/admin/register
- * Accounts created by admin are automatically email-verified
+ * Regular users need email verification, ADMIN accounts are auto-verified
  */
 export const createAdminUser = async (token, { name, email, password, role = 'STUDENT' }) => {
   const res = await apiClient.post(
@@ -305,13 +305,15 @@ export const getAdminStats = async (token) => {
     const [usersRes, resourcesRes, bookingsRes] = await Promise.all([
       getAdminUsers(token, { page: 0, size: 1 }), // Get total count
       getAdminResources(token, { page: 0, size: 1 }),
-      getAdminBookings(token, { page: 0, size: 1 }),
+      apiClient.get('/api/bookings/analytics', {
+        headers: getAuthHeader(token),
+      }),
     ])
 
     return {
       totalUsers: usersRes.totalElements || 0,
       totalResources: resourcesRes.totalElements || 0,
-      totalBookings: bookingsRes.totalElements || 0,
+      totalBookings: bookingsRes.data?.totalBookings || 0,
       timestamp: new Date(),
     }
   } catch (error) {
@@ -352,20 +354,16 @@ export const getUserStatsbyRole = async (token) => {
  */
 export const getBookingStats = async (token) => {
   try {
-    const statuses = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']
-    const stats = {}
-
-    const results = await Promise.all(
-      statuses.map((status) =>
-        getAdminBookings(token, { page: 0, size: 1, status }).catch(() => ({ totalElements: 0 }))
-      )
-    )
-
-    statuses.forEach((status, index) => {
-      stats[status] = results[index].totalElements || 0
+    const res = await apiClient.get('/api/bookings/analytics', {
+      headers: getAuthHeader(token),
     })
 
-    return stats
+    return {
+      PENDING: res.data?.pendingBookings || 0,
+      APPROVED: res.data?.approvedBookings || 0,
+      REJECTED: res.data?.rejectedBookings || 0,
+      CANCELLED: res.data?.cancelledBookings || 0,
+    }
   } catch (error) {
     console.error('Failed to fetch booking stats:', error)
     throw error

@@ -18,6 +18,10 @@ import ResourceList from './pages/ResourceList'
 import TicketList from './pages/TicketList'
 import TicketCreate from './pages/TicketCreate'
 import TicketDetails from './pages/TicketDetails'
+import BookingList from './pages/BookingList'
+import BookingCreate from './pages/BookingCreate'
+import BookingAdmin from './pages/BookingAdmin'
+import BookingAnalytics from './pages/BookingAnalytics'
 
 function RequireAuth({ children, roles }) {
   const { token, user, loading } = useAuth()
@@ -142,6 +146,40 @@ export default function AppRouter() {
             element={
               <ProtectedShell>
                 <TicketDetails />
+              </ProtectedShell>
+            }
+          />
+
+          {/* Member 2: Booking Management Routes */}
+          <Route
+            path="/bookings"
+            element={
+              <ProtectedShell>
+                <BookingList />
+              </ProtectedShell>
+            }
+          />
+          <Route
+            path="/bookings/create"
+            element={
+              <ProtectedShell>
+                <BookingCreate />
+              </ProtectedShell>
+            }
+          />
+          <Route
+            path="/bookings/admin"
+            element={
+              <ProtectedShell roles={['ADMIN', 'MANAGER']}>
+                <BookingAdmin />
+              </ProtectedShell>
+            }
+          />
+          <Route
+            path="/bookings/analytics"
+            element={
+              <ProtectedShell roles={['ADMIN', 'MANAGER']}>
+                <BookingAnalytics />
               </ProtectedShell>
             }
           />

@@ -1,7 +1,7 @@
 # National University of Smart Technologies Operations Hub
 
 <p align="center">
-  <img src="./frontend/public/universityImage.png" alt="National University of Smart Technologies banner" width="920">
+  <img src="./frontend/public/campus-white-bg.png" alt="Smart Campus banner" width="920">
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@
 - [Project Structure](#project-structure)
 
 ## Overview
-National University of Smart Technologies Operations Hub is a full-stack project for managing:
+Smart Campus Operations Hub is a full-stack project for managing:
 - users and role-based access
 - resource and facility operations
 - bookings
@@ -110,13 +110,6 @@ GRANT ALL PRIVILEGES ON smart_campus_db.* TO 'smartcampus'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
-
-After the backend starts, a predefined admin account is automatically bootstrapped (email is already verified):
-
-- Email: `adminone@nust.lk`
-- Password: `Test1234`
-
-Use this account to sign in and create additional admin/user accounts.
 
 ### 5. Update backend local config
 Open `backend/src/main/resources/application.properties` and verify:
@@ -411,7 +404,7 @@ SmartCampus/
 │   │   │   └── VerifyEmail.jsx                  # Code verification
 │   │   └── services/
 │   │       └── authService.js                   # Auth API calls
-│   ├── public/universityImage.png
+│   ├── public/campus-white-bg.png
 │   ├── .env.example
 │   └── .env (local only)
 └── scripts/setup-local.sh

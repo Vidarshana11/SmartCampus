@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { BRAND_FULL_NAME } from '../constants/branding'
 import { sendVerificationCode, registerWithCode } from '../services/authService'
-import { FaEye, FaEyeSlash, FaUser, FaEnvelope, FaLock, FaIdBadge, FaKey } from 'react-icons/fa'
+import { FaGraduationCap, FaEye, FaEyeSlash, FaUser, FaEnvelope, FaLock, FaIdBadge, FaKey } from 'react-icons/fa'
 
 export default function Register() {
   const { loginWithToken } = useAuth()
@@ -277,9 +277,11 @@ export default function Register() {
                       >
                         <option value="STUDENT">Student</option>
                         <option value="LECTURER">Lecturer</option>
+                        <option value="TECHNICIAN">Technician</option>
+                        <option value="MANAGER">Manager</option>
+                        <option value="ADMIN">Administrator</option>
                       </select>
                     </div>
-                    <p className="mt-1.5 text-xs text-gray-500">Other account types are created by admin.</p>
                   </div>
 
                   <div className="flex items-start gap-2">

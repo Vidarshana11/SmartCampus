@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { BRAND_FULL_NAME } from '../constants/branding'
 import { resendVerificationEmail } from '../services/authService'
-import { FaEye, FaEyeSlash, FaGoogle, FaGithub, FaEnvelope, FaLock } from 'react-icons/fa'
+import { FaGraduationCap, FaEye, FaEyeSlash, FaGoogle, FaGithub, FaEnvelope, FaLock } from 'react-icons/fa'
 
 export default function Login() {
   const { login } = useAuth()

@@ -7,7 +7,6 @@
  * - Admin-only announcements
  */
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { FaBell, FaCheck, FaTrash, FaTicketAlt } from 'react-icons/fa'
 import { useAuth } from '../../auth/AuthProvider'
 import {
@@ -20,7 +19,6 @@ import './NotificationBell.css'
 
 export default function AdminNotificationBell() {
   const { token } = useAuth()
-  const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
@@ -104,22 +102,6 @@ export default function AdminNotificationBell() {
     return <FaBell className="notification-icon" />
   }
 
-  const isTicketNotification = (notification) =>
-    notification.category === 'ADMIN_ALERT' &&
-    notification.relatedEntityType === 'TICKET' &&
-    Boolean(notification.relatedEntityId)
-
-  const handleNotificationClick = async (notification) => {
-    if (!notification.isRead) {
-      await handleMarkAsRead(notification.id)
-    }
-
-    if (isTicketNotification(notification)) {
-      setIsOpen(false)
-      navigate(`/admin-panel?tab=ticket-update&ticketId=${notification.relatedEntityId}`)
-    }
-  }
-
   // Format relative time
   const formatTime = (dateString) => {
     const date = new Date(dateString)
@@ -183,7 +165,7 @@ export default function AdminNotificationBell() {
                 <div
                   key={notification.id}
                   className={`notification-item ${notification.isRead ? 'read' : 'unread'}`}
-                  onClick={() => handleNotificationClick(notification)}
+                  onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
                 >
                   <div className="notification-icon-wrapper">
                     {getNotificationIcon(notification)}

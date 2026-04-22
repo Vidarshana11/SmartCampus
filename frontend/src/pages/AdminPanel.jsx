@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   FaBell,
   FaCog,
@@ -33,7 +33,7 @@ import TicketManagementTab from '../components/admin/TicketManagementTab'
 import TicketUpdateTab from '../components/admin/TicketUpdateTab'
 import AnnouncementsTab from '../components/admin/AnnouncementsTab'
 import ReportsTab from '../components/admin/ReportsTab'
-import AccountManagement from './AccountManagement'
+import AdminSettingsTab from '../components/admin/AdminSettingsTab'
 import AdminNotificationBell from '../components/notifications/AdminNotificationBell'
 
 const TABS = [
@@ -50,7 +50,6 @@ const TABS = [
 
 export default function AdminPanel() {
   const navigate = useNavigate()
-  const location = useLocation()
   const { token, logout } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedTicketId, setSelectedTicketId] = useState(null)
@@ -66,23 +65,6 @@ export default function AdminPanel() {
   const [savingCampaignId, setSavingCampaignId] = useState(null)
 
   usePageTitle('Admin Panel')
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search)
-    const tabParam = searchParams.get('tab')
-    const ticketIdParam = searchParams.get('ticketId')
-
-    if (tabParam && TABS.some((tab) => tab.id === tabParam)) {
-      setActiveTab(tabParam)
-    }
-
-    if (tabParam === 'ticket-update' && ticketIdParam) {
-      const parsedTicketId = Number(ticketIdParam)
-      if (Number.isInteger(parsedTicketId) && parsedTicketId > 0) {
-        setSelectedTicketId(parsedTicketId)
-      }
-    }
-  }, [location.search])
 
   const handleLogout = () => {
     logout()
@@ -264,7 +246,7 @@ export default function AdminPanel() {
       case 'reports':
         return <ReportsTab token={token} />
       case 'account':
-        return <AccountManagement />
+        return <AdminSettingsTab />
       default:
         return null
     }
@@ -520,7 +502,7 @@ function DashboardTab({ stats, loading, error }) {
           {/* Welcome Message */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to National University of Smart Technologies Operations Hub</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to SmartCampus Operations Hub</h2>
               <p className="text-gray-600">Use the tabs above to manage users, resources, facility bookings, and campus announcements.</p>
             </div>
             <div className="p-8">
