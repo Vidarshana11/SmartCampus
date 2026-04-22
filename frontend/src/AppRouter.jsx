@@ -102,7 +102,7 @@ export default function AppRouter() {
             path="/admin"
             element={
               <RequireAuth roles={['ADMIN']}>
-                <AdminPanel />
+                <Navigate to="/admin-panel" replace />
               </RequireAuth>
             }
           />

@@ -27,7 +27,7 @@ const getNextStatuses = (currentStatus, role) => {
     switch (currentStatus) {
       case 'OPEN': return ['IN_PROGRESS', 'REJECTED']
       case 'IN_PROGRESS': return ['RESOLVED', 'REJECTED']
-      case 'RESOLVED': return ['CLOSED']
+      case 'RESOLVED': return ['CLOSED', 'REJECTED']
       default: return []
     }
   }

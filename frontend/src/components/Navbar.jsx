@@ -6,7 +6,6 @@ import NotificationBell from './notifications/NotificationBell'
 import {
   FaUser,
   FaSearch,
-  FaGraduationCap,
   FaCalendar,
   FaBook,
   FaTools,
@@ -22,6 +21,7 @@ export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const campusLogo = '/universityImage.png'
 
   const isAdmin = user?.role === 'ADMIN'
   const userName = user?.name ?? 'Guest'
@@ -50,9 +50,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-              <FaGraduationCap className="w-6 h-6 text-[#ffd700]" />
-            </div>
+            <img src={campusLogo} alt="National University of Smart Technologies logo" className="w-10 h-10 rounded-lg object-cover border border-white/20" />
             <div className="hidden sm:block">
               <div className="text-white font-bold text-lg leading-tight">{BRAND_SHORT_NAME}</div>
               <div className="text-white/60 text-xs">Student Portal</div>

@@ -81,7 +81,7 @@ export default function TicketList({ hideHeader = false }) {
                 {user?.role === 'ADMIN' || user?.role === 'MANAGER'
                   ? 'Manage and oversee all incident reports'
                   : user?.role === 'TECHNICIAN'
-                    ? 'View and resolve your assigned tickets'
+                    ? 'View your assigned tickets and incidents you reported'
                     : 'Track your reported incidents'}
               </p>
             </div>

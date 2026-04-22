@@ -43,7 +43,7 @@ public class TicketService {
     private static final Map<TicketStatus, Set<TicketStatus>> VALID_TRANSITIONS = Map.of(
             TicketStatus.OPEN, Set.of(TicketStatus.IN_PROGRESS, TicketStatus.REJECTED),
             TicketStatus.IN_PROGRESS, Set.of(TicketStatus.RESOLVED, TicketStatus.REJECTED),
-            TicketStatus.RESOLVED, Set.of(TicketStatus.CLOSED),
+            TicketStatus.RESOLVED, Set.of(TicketStatus.CLOSED, TicketStatus.REJECTED),
             TicketStatus.CLOSED, Set.of(),
             TicketStatus.REJECTED, Set.of());
 
@@ -147,7 +147,19 @@ public class TicketService {
         if (role == Role.ADMIN || role == Role.MANAGER) {
             tickets = ticketRepository.findAllByOrderByCreatedAtDesc();
         } else if (role == Role.TECHNICIAN) {
-            tickets = ticketRepository.findByAssignedToIdOrderByCreatedAtDesc(user.getId());
+            // Technicians should see assigned work plus incidents they personally reported.
+            Map<Long, Ticket> mergedTickets = new LinkedHashMap<>();
+
+            ticketRepository.findByAssignedToIdOrderByCreatedAtDesc(user.getId())
+                    .forEach(ticket -> mergedTickets.put(ticket.getId(), ticket));
+
+            ticketRepository.findByCreatedByIdOrderByCreatedAtDesc(user.getId())
+                    .forEach(ticket -> mergedTickets.put(ticket.getId(), ticket));
+
+            tickets = mergedTickets.values()
+                    .stream()
+                    .sorted(Comparator.comparing(Ticket::getCreatedAt).reversed())
+                    .toList();
         } else {
             tickets = ticketRepository.findByCreatedByIdOrderByCreatedAtDesc(user.getId());
         }
