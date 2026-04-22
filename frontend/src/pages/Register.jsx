@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { BRAND_FULL_NAME } from '../constants/branding'
 import { sendVerificationCode, registerWithCode } from '../services/authService'
 import { FaGraduationCap, FaEye, FaEyeSlash, FaUser, FaEnvelope, FaLock, FaIdBadge, FaKey } from 'react-icons/fa'
 
