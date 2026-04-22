@@ -64,7 +64,7 @@ export default function BookingManagementTab({ token }) {
 
   useEffect(() => {
     if (token) fetchBookings()
-  }, [fetchBookings])
+  }, [token, fetchBookings])
 
   // Approve
   const handleApprove = async (bookingId) => {

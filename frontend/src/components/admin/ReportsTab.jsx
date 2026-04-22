@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { getAdminStats, getUserStatsbyRole, getBookingStats } from '../../services/adminService'
 import { FaSpinner, FaDownload } from 'react-icons/fa'
@@ -12,7 +12,7 @@ export default function ReportsTab({ token }) {
   const [lastUpdated, setLastUpdated] = useState(null)
   const [refreshingBookings, setRefreshingBookings] = useState(false)
 
-  const refreshReports = async ({ refreshBookingsOnly = false } = {}) => {
+  const refreshReports = useCallback(async ({ refreshBookingsOnly = false } = {}) => {
     try {
       if (!refreshBookingsOnly) {
         setLoading(true)
@@ -45,7 +45,7 @@ export default function ReportsTab({ token }) {
       setLoading(false)
       setRefreshingBookings(false)
     }
-  }
+  }, [token])
 
   useEffect(() => {
     if (token) {
@@ -58,7 +58,7 @@ export default function ReportsTab({ token }) {
       return () => clearInterval(intervalId)
     }
     return undefined
-  }, [token])
+  }, [token, refreshReports])
 
   const bookingStatusData = useMemo(
     () => [

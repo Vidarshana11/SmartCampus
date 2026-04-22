@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import bookingService from '../services/bookingService';
@@ -22,7 +22,7 @@ const BookingList = () => {
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
@@ -31,16 +31,16 @@ const BookingList = () => {
         : await bookingService.getMyBookings(token);
       setBookings(data);
       setError('');
-    } catch (err) {
+    } catch {
       setError('Failed to load bookings. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, isAdmin]);
 
   useEffect(() => {
     if (!authLoading) fetchBookings();
-  }, [token, authLoading]);
+  }, [authLoading, fetchBookings]);
 
   const handleCancel = async (id) => {
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
@@ -60,7 +60,7 @@ const BookingList = () => {
     try {
       const data = await bookingService.getBookingQR(token, id);
       setQrData(data);
-    } catch (err) {
+    } catch {
       alert('Failed to load QR code.');
     } finally {
       setQrLoading(false);
