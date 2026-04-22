@@ -4,7 +4,7 @@
 
 # Application Name
 spring.application.name=SmartCampusAPI
-server.port=8080
+server.port=8081
 server.servlet.context-path=/
 
 # ========================================
@@ -14,8 +14,8 @@ server.servlet.context-path=/
 
 spring.datasource.url=jdbc:mysql://localhost:3306/smart_campus_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-spring.datasource.username=root
-spring.datasource.password=
+spring.datasource.username=smartcampus
+spring.datasource.password=smartcampus123
 
 # Connection Pool Settings
 spring.datasource.hikari.maximum-pool-size=10
@@ -76,13 +76,17 @@ app.email-verification.frontend-verify-url=http://localhost:5173/verify-email
 #
 # For development: Codes are logged to console if SMTP is not configured
 
+# ========================================
+# SMTP MAIL CONFIGURATION
+# ========================================
 spring.mail.host=smtp.gmail.com
 spring.mail.port=587
-spring.mail.username=YOUR_SMTP_USERNAME
-spring.mail.password=YOUR_SMTP_APP_PASSWORD
+spring.mail.username=vidajaya2@gmail.com
+spring.mail.password=xdka kqxp nsbe qrvr
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
-app.mail.from=YOUR_FROM_EMAIL
+app.mail.from=vidajaya2@gmail.com
+
 
 # Other SMTP providers:
 # Outlook: spring.mail.host=smtp-mail.outlook.com
@@ -113,7 +117,7 @@ spring.security.oauth2.client.provider.google.user-name-attribute=email
 # CORS CONFIGURATION
 # ========================================
 
-cors.allowed-origins=http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173
+cors.allowed-origins=http://localhost:5175,http://localhost:3000,http://127.0.0.1:5175
 cors.allowed-methods=GET,POST,PUT,DELETE,OPTIONS,PATCH
 cors.allowed-headers=*
 cors.max-age=3600
