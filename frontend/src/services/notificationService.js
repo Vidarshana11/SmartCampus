@@ -76,17 +76,49 @@ export const getNotifications = async (token, { page = 0, size = 20, unreadOnly 
 }
 
 /**
+ * Get all announcement notifications for the current user.
+ * Announcements are campaign-based notifications created by admin.
+ */
+export const getAllAnnouncements = async (token, { pageSize = 100, limit } = {}) => {
+  const announcements = []
+  let page = 0
+  let totalPages = 1
+
+  while (page < totalPages) {
+    const data = await getNotifications(token, { page, size: pageSize })
+    const pageNotifications = Array.isArray(data?.notifications) ? data.notifications : []
+
+    announcements.push(...pageNotifications.filter(isAnnouncementNotification))
+    if (typeof limit === 'number' && limit > 0 && announcements.length >= limit) {
+      break
+    }
+
+    const parsedTotalPages = Number(data?.totalPages)
+    if (Number.isFinite(parsedTotalPages)) {
+      totalPages = Math.max(parsedTotalPages, 1)
+    } else {
+      totalPages = page + 1
+    }
+
+    page += 1
+  }
+
+  const sortedAnnouncements = announcements
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+  if (typeof limit === 'number' && limit > 0) {
+    return sortedAnnouncements.slice(0, limit)
+  }
+
+  return sortedAnnouncements
+}
+
+/**
  * Get announcements for dashboard cards.
  * Announcements are campaign-based notifications created by admin.
  */
 export const getDashboardAnnouncements = async (token, { limit = 6 } = {}) => {
-  const data = await getNotifications(token, { page: 0, size: 100 })
-  const allNotifications = Array.isArray(data?.notifications) ? data.notifications : []
-  const announcements = allNotifications
-    .filter(isAnnouncementNotification)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, limit)
-  return announcements
+  return getAllAnnouncements(token, { limit })
 }
 
 /**

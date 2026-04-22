@@ -1,13 +1,15 @@
 import { useState, useCallback } from 'react'
 import Cropper from 'react-easy-crop'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
-import { uploadProfilePicture, deleteProfilePicture, changePassword, updateUser } from '../../services/roleService'
+import { uploadProfilePicture, deleteProfilePicture, changePassword, updateUser, deleteAccount } from '../../services/roleService'
 import { getImageUrl } from '../../api/apiClient'
 import { FiUpload, FiTrash2, FiEye, FiEyeOff } from 'react-icons/fi'
 import { FaSpinner, FaCheck, FaTimes } from 'react-icons/fa'
 
 export default function AdminSettingsTab() {
-  const { user, token, refreshMe } = useAuth()
+  const navigate = useNavigate()
+  const { user, token, refreshMe, logout } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -98,10 +100,8 @@ export default function AdminSettingsTab() {
       setError('')
 
       const croppedBlob = await getCroppedImg(uploadImage, croppedAreaPixels)
-      const formData = new FormData()
-      formData.append('file', croppedBlob, 'profile.jpg')
-
-      await uploadProfilePicture(token, user.id, formData)
+      const croppedFile = new File([croppedBlob], 'profile.jpg', { type: 'image/jpeg' })
+      await uploadProfilePicture(token, user.id, croppedFile)
       await refreshMe()
 
       setSuccess('Profile picture updated successfully')
@@ -163,8 +163,13 @@ export default function AdminSettingsTab() {
 
   // Change password
   const handleChangePassword = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setError('All password fields are required')
+    if (hasPassword && !currentPassword) {
+      setError('Current password is required')
+      return
+    }
+
+    if (!newPassword || !confirmPassword) {
+      setError('New password and confirmation are required')
       return
     }
 
@@ -181,9 +186,12 @@ export default function AdminSettingsTab() {
     try {
       setLoading(true)
       setError('')
-      await changePassword(token, user.id, { currentPassword, newPassword })
+      await changePassword(token, user.id, {
+        currentPassword: hasPassword ? currentPassword : '',
+        newPassword,
+      })
 
-      setSuccess('Password changed successfully')
+      setSuccess(hasPassword ? 'Password changed successfully' : 'Password set successfully')
       setShowPasswordForm(false)
       setCurrentPassword('')
       setNewPassword('')
@@ -197,11 +205,33 @@ export default function AdminSettingsTab() {
     }
   }
 
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to permanently delete your account? This action cannot be undone.'
+    )
+    if (!confirmed) return
+
+    try {
+      setLoading(true)
+      setError('')
+      await deleteAccount(token, user.id)
+      setSuccess('Account deleted successfully. Redirecting...')
+
+      setTimeout(() => {
+        logout()
+        navigate('/login', { replace: true })
+      }, 1200)
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to delete account')
+      setLoading(false)
+    }
+  }
+
   if (!user) {
     return <div className="text-center py-8">Loading...</div>
   }
 
-  const hasPassword = user.hasPassword
+  const hasPassword = Boolean(user.hasPassword)
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -380,12 +410,18 @@ export default function AdminSettingsTab() {
       </div>
 
       {/* Password Change Section */}
-      {hasPassword && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
-          <h2 className="text-xl font-bold text-gray-900">Password & Security</h2>
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
+        <h2 className="text-xl font-bold text-gray-900">Password & Security</h2>
 
-          {showPasswordForm ? (
-            <div className="space-y-4">
+        {!hasPassword && (
+          <p className="text-sm text-gray-600">
+            Your account does not currently have a local password. You can set one now.
+          </p>
+        )}
+
+        {showPasswordForm ? (
+          <div className="space-y-4">
+            {hasPassword && (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Current Password</label>
                 <div className="relative">
@@ -401,73 +437,89 @@ export default function AdminSettingsTab() {
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
                   >
-                    {showCurrentPassword ? <FaEyeSlash /> : <FaEye />}
+                    {showCurrentPassword ? <FiEyeOff /> : <FiEye />}
                   </button>
                 </div>
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
-                <div className="relative">
-                  <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
-                  >
-                    {showNewPassword ? <FaEyeOff /> : <FaEye />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm New Password</label>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
+              <div className="relative">
                 <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900"
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900 pr-10"
                 />
-              </div>
-
-              <div className="flex gap-3 pt-4">
                 <button
-                  onClick={handleChangePassword}
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 font-medium"
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
                 >
-                  {loading ? 'Updating...' : 'Change Password'}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowPasswordForm(false)
-                    setCurrentPassword('')
-                    setNewPassword('')
-                    setConfirmPassword('')
-                  }}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-                >
-                  Cancel
+                  {showNewPassword ? <FiEyeOff /> : <FiEye />}
                 </button>
               </div>
             </div>
-          ) : (
-            <button
-              onClick={() => setShowPasswordForm(true)}
-              className="w-full px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            >
-              Change Password
-            </button>
-          )}
-        </div>
-      )}
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm New Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={handleChangePassword}
+                disabled={loading}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 font-medium"
+              >
+                {loading ? 'Updating...' : hasPassword ? 'Change Password' : 'Set Password'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowPasswordForm(false)
+                  setCurrentPassword('')
+                  setNewPassword('')
+                  setConfirmPassword('')
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowPasswordForm(true)}
+            className="w-full px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+          >
+            {hasPassword ? 'Change Password' : 'Set Password'}
+          </button>
+        )}
+      </div>
+
+      {/* Danger Zone - Self Account Deletion */}
+      <div className="bg-white rounded-lg border border-red-200 shadow-sm p-6 space-y-4">
+        <h2 className="text-xl font-bold text-red-700">Danger Zone</h2>
+        <p className="text-sm text-red-700">
+          Deleting your account is permanent and will remove your access and related data.
+        </p>
+        <button
+          onClick={handleDeleteAccount}
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-400 font-medium"
+        >
+          <FiTrash2 className="w-4 h-4" />
+          {loading ? 'Deleting...' : 'Delete My Account'}
+        </button>
+      </div>
 
       <style>{`
         @keyframes slideDown {

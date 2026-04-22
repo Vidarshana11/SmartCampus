@@ -167,7 +167,7 @@ const AccountManagement = () => {
   // Change password
   const handleChangePassword = async () => {
     // Validation
-    if (!currentPassword) {
+    if (hasPassword && !currentPassword) {
       setError('Current password is required')
       return
     }
@@ -190,8 +190,11 @@ const AccountManagement = () => {
     try {
       setLoading(true)
       setError('')
-      await changePassword(token, user.id, { currentPassword, newPassword })
-      setSuccess('Password changed successfully')
+      await changePassword(token, user.id, {
+        currentPassword: hasPassword ? currentPassword : '',
+        newPassword,
+      })
+      setSuccess(hasPassword ? 'Password changed successfully' : 'Password set successfully')
       setShowPasswordForm(false)
       setCurrentPassword('')
       setNewPassword('')
@@ -232,7 +235,7 @@ const AccountManagement = () => {
     return <div className="account-container">Loading...</div>
   }
 
-  const hasPassword = user.hasPassword
+  const hasPassword = Boolean(user.hasPassword)
 
   return (
     <div className="account-container">
@@ -371,17 +374,23 @@ const AccountManagement = () => {
         </div>
       </div>
 
-      {/* Password Change Section (only for non-OAuth users) */}
-      {hasPassword && (
-        <div className="account-card">
-          <h2>Security</h2>
+      {/* Password Change Section */}
+      <div className="account-card">
+        <h2>Security</h2>
 
-          {!showPasswordForm ? (
-            <button className="btn-change-password" onClick={() => setShowPasswordForm(true)}>
-              Change Password
-            </button>
-          ) : (
-            <div className="password-form">
+        {!hasPassword && (
+          <p className="text-gray-600 mb-3">
+            No local password is set for this account yet. You can set one now.
+          </p>
+        )}
+
+        {!showPasswordForm ? (
+          <button className="btn-change-password" onClick={() => setShowPasswordForm(true)}>
+            {hasPassword ? 'Change Password' : 'Set Password'}
+          </button>
+        ) : (
+          <div className="password-form">
+            {hasPassword && (
               <div className="form-group">
                 <label>Current Password</label>
                 <div className="password-input">
@@ -401,6 +410,7 @@ const AccountManagement = () => {
                   </button>
                 </div>
               </div>
+            )}
 
               <div className="form-group">
                 <label>New Password</label>
@@ -438,13 +448,12 @@ const AccountManagement = () => {
                   Cancel
                 </button>
                 <button className="btn-primary" onClick={handleChangePassword} disabled={loading}>
-                  {loading ? 'Changing...' : 'Change Password'}
+                  {loading ? 'Changing...' : hasPassword ? 'Change Password' : 'Set Password'}
                 </button>
               </div>
             </div>
           )}
-        </div>
-      )}
+      </div>
 
       {/* Danger Zone - Delete Account */}
       <div className="account-card danger-zone">
