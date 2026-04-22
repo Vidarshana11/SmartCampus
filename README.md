@@ -1,7 +1,7 @@
 # National University of Smart Technologies Operations Hub
 
 <p align="center">
-  <img src="./frontend/public/campus-white-bg.png" alt="Smart Campus banner" width="920">
+  <img src="./frontend/public/universityImage.png" alt="Smart Campus banner" width="920">
 </p>
 
 <p align="center">
