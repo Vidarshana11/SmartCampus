@@ -4,7 +4,6 @@ import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { BRAND_FULL_NAME, BRAND_SHORT_NAME } from '../constants/branding'
 import {
-  FaGraduationCap,
   FaCalendarAlt,
   FaBook,
   FaBuilding,
@@ -67,6 +66,8 @@ const stats = [
   { value: '24/7', label: 'Support Available' },
 ]
 
+const campusLogo = '/universityImage.png'
+
 export default function Landing() {
   const { token, user, loading } = useAuth()
   const navigate = useNavigate()
@@ -97,9 +98,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#003366] rounded-lg flex items-center justify-center">
-                <FaGraduationCap className="w-6 h-6 text-[#c9a227]" />
-              </div>
+              <img src={campusLogo} alt="National University of Smart Technologies logo" className="w-10 h-10 rounded-lg object-cover border border-[#003366]/20" />
               <div>
                 <span className="text-[#003366] font-bold text-lg">{BRAND_SHORT_NAME}</span>
                 <span className="text-gray-400 mx-2">|</span>
@@ -327,9 +326,7 @@ export default function Landing() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-[#c9a227] rounded-lg flex items-center justify-center">
-                  <FaGraduationCap className="w-6 h-6 text-[#003366]" />
-                </div>
+                <img src={campusLogo} alt="National University of Smart Technologies logo" className="w-10 h-10 rounded-lg object-cover border border-white/20" />
                 <span className="font-bold text-lg">{BRAND_FULL_NAME}</span>
               </div>
               <p className="text-gray-400 text-sm">
