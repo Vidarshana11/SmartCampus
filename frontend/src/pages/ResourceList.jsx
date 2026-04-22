@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import resourceService from '../services/resourceService';
 import { useAuth } from '../auth/AuthProvider';
 
@@ -13,7 +13,7 @@ const ResourceList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchResources = async () => {
+  const fetchResources = useCallback(async () => {
     // If auth is still loading or token is not yet available, don't fetch
     if (!token) {
         setResources([]);
@@ -36,13 +36,13 @@ const ResourceList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, filters]);
 
   useEffect(() => {
     if (!authLoading) {
         fetchResources();
     }
-  }, [filters, token, authLoading]);
+  }, [authLoading, fetchResources]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;

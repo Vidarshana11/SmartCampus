@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import bookingService from '../services/bookingService';
@@ -21,7 +21,7 @@ const BookingAdmin = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [filter, setFilter] = useState('PENDING');
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     setLoading(true);
     try {
       const data = await bookingService.getAllBookings(token);
@@ -31,11 +31,11 @@ const BookingAdmin = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (token) fetchBookings();
-  }, [token]);
+  }, [token, fetchBookings]);
 
   const handleApprove = async (id) => {
     setActionLoading(true);
