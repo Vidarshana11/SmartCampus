@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { BRAND_FULL_NAME } from '../constants/branding'
+import { BRAND_FULL_NAME, BRAND_SHORT_NAME } from '../constants/branding'
 import {
   FaGraduationCap,
   FaCalendarAlt,

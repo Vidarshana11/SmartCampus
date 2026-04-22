@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { getImageUrl } from '../api/apiClient'
-import { BRAND_FULL_NAME } from '../constants/branding'
+import { BRAND_FULL_NAME, BRAND_SHORT_NAME } from '../constants/branding'
 import Navbar from './Navbar'
 import NotificationBell from './notifications/NotificationBell'
 import {
