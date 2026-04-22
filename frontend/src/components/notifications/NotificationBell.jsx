@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import {
   getNotifications,
@@ -14,6 +15,7 @@ import './NotificationBell.css'
  */
 export default function NotificationBell({ tone = 'light' }) {
   const { token, user } = useAuth()
+  const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
   const [recentNotifications, setRecentNotifications] = useState([])
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -93,18 +95,25 @@ export default function NotificationBell({ tone = 'light' }) {
   }
 
   const handleNotificationClick = async (notification) => {
-    if (notification.isRead) return
+    const isTicketNotification = notification.relatedEntityType === 'TICKET' && notification.relatedEntityId
 
-    try {
-      await markAsRead(token, notification.id)
-      setRecentNotifications((prev) => prev.map((item) => (
-        item.id === notification.id ? { ...item, isRead: true, readAt: new Date().toISOString() } : item
-      )))
-      setUnreadCount((prev) => Math.max(0, prev - 1))
-      setMarkAllCandidateIds((prev) => prev.filter((id) => id !== notification.id))
-    } catch (err) {
-      console.error('Error marking notification as read:', err)
-      setError('Failed to update notification')
+    if (!notification.isRead) {
+      try {
+        await markAsRead(token, notification.id)
+        setRecentNotifications((prev) => prev.map((item) => (
+          item.id === notification.id ? { ...item, isRead: true, readAt: new Date().toISOString() } : item
+        )))
+        setUnreadCount((prev) => Math.max(0, prev - 1))
+        setMarkAllCandidateIds((prev) => prev.filter((id) => id !== notification.id))
+      } catch (err) {
+        console.error('Error marking notification as read:', err)
+        setError('Failed to update notification')
+      }
+    }
+
+    if (isTicketNotification) {
+      setIsDropdownOpen(false)
+      navigate(`/tickets/${notification.relatedEntityId}`)
     }
   }
 

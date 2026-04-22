@@ -53,6 +53,14 @@ export default function TicketUpdateTab({ ticketId, onBack }) {
   }, [fetchData])
 
   const handleUpdateStatus = async () => {
+    const trimmedRejectionReason = rejectionReason.trim()
+    const trimmedResolutionNotes = resolutionNotes.trim()
+
+    if (status === 'REJECTED' && !trimmedRejectionReason) {
+      setError('Rejection reason is required')
+      return
+    }
+
     try {
       setUpdating(true)
       setError(null)
@@ -60,14 +68,14 @@ export default function TicketUpdateTab({ ticketId, onBack }) {
         token,
         ticketId,
         status,
-        status === 'REJECTED' ? rejectionReason : null,
-        status === 'RESOLVED' ? resolutionNotes : null
+        status === 'REJECTED' ? trimmedRejectionReason : null,
+        status === 'RESOLVED' ? trimmedResolutionNotes : null
       )
       setSuccess('Status updated successfully')
       setTimeout(() => setSuccess(null), 3000)
       fetchData()
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update status')
+      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to update status')
     } finally {
       setUpdating(false)
     }
