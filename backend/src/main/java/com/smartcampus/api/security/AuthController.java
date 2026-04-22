@@ -1,25 +1,30 @@
 package com.smartcampus.api.security;
 
-import com.smartcampus.api.security.dto.ForgotPasswordRequest;
-import com.smartcampus.api.security.dto.ResetPasswordRequest;
-import com.smartcampus.api.user.Role;
-import com.smartcampus.api.user.User;
-import com.smartcampus.api.user.UserRepository;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import com.smartcampus.api.security.dto.ForgotPasswordRequest;
+import com.smartcampus.api.security.dto.ResetPasswordRequest;
+import com.smartcampus.api.user.Role;
+import com.smartcampus.api.user.User;
+import com.smartcampus.api.user.UserRepository;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Authentication controller for local registration & login.
@@ -223,51 +228,7 @@ public class AuthController {
         ));
     }
 
-    // ===== Admin Create User (Auto-verifies ADMIN accounts) =====
-    @PostMapping("/admin/register")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> adminCreateUser(
-            @Valid @RequestBody RegisterRequest request,
-            @AuthenticationPrincipal User adminUser) {
 
-        if (userRepository.existsByEmail(request.email())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "An account with this email already exists."));
-        }
-
-        User user = User.builder()
-                .email(request.email())
-                .name(request.name())
-                .passwordHash(passwordEncoder.encode(request.password()))
-                .build();
-
-        // Assign role (default to STUDENT if not provided or invalid)
-        Role assignedRole;
-        try {
-            assignedRole = Role.valueOf(request.role().toUpperCase());
-        } catch (Exception e) {
-            assignedRole = Role.STUDENT;
-        }
-        user.setRole(assignedRole);
-
-        // Auto-verify email for ADMIN accounts created by admin
-        // Regular users still need email verification
-        if (assignedRole == Role.ADMIN) {
-            user.setEmailVerified(true);
-            user.setEmailVerifiedAt(LocalDateTime.now());
-            log.info("Admin {} created new admin account for {} - auto-verified", adminUser.getEmail(), request.email());
-        } else {
-            user.setEmailVerified(false);
-        }
-
-        // Explicitly set as not verified (needs email verification)
-        user.setEmailVerified(false);
-
-        userRepository.save(user);
-        emailVerificationService.sendVerificationEmail(user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "message", "Registration successful. Please verify your email before signing in."
-        ));
-    }
 
     // ===== Admin Create User (Auto-verifies all admin-created accounts) =====
     @PostMapping("/admin/register")
@@ -389,25 +350,6 @@ public class AuthController {
     }
 
     // ===== Helper =====
-    private Role resolveSelfRegistrationRole(String roleValue) {
-        if (roleValue == null || roleValue.isBlank()) {
-            return Role.STUDENT;
-        }
-
-        Role parsedRole;
-        try {
-            parsedRole = Role.valueOf(roleValue.toUpperCase(Locale.ROOT));
-        } catch (Exception ex) {
-            throw new IllegalArgumentException("Invalid role selected for self-registration.");
-        }
-
-        if (parsedRole != Role.STUDENT && parsedRole != Role.LECTURER) {
-            throw new IllegalArgumentException("Only STUDENT and LECTURER accounts can be created from Create Account.");
-        }
-
-        return parsedRole;
-    }
-
     private Map<String, Object> buildUserMap(User user) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", user.getId());
