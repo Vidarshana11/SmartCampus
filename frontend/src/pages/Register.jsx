@@ -6,6 +6,8 @@ import { BRAND_FULL_NAME } from '../constants/branding'
 import { sendVerificationCode, registerWithCode } from '../services/authService'
 import { FaGraduationCap, FaEye, FaEyeSlash, FaUser, FaEnvelope, FaLock, FaIdBadge, FaKey } from 'react-icons/fa'
 
+const ALLOWED_SELF_REGISTRATION_ROLES = ['STUDENT', 'LECTURER']
+
 export default function Register() {
   const { loginWithToken } = useAuth()
   const navigate = useNavigate()
@@ -58,6 +60,10 @@ export default function Register() {
     e.preventDefault()
     if (verificationCode.length !== 6) {
       setError('Please enter the 6-digit verification code')
+      return
+    }
+    if (!ALLOWED_SELF_REGISTRATION_ROLES.includes(role)) {
+      setError('Only Student and Lecturer accounts can be created from this page')
       return
     }
 
@@ -272,14 +278,14 @@ export default function Register() {
                       <select
                         id="role"
                         value={role}
-                        onChange={(e) => setRole(e.target.value)}
+                        onChange={(e) => {
+                          const selectedRole = e.target.value
+                          setRole(ALLOWED_SELF_REGISTRATION_ROLES.includes(selectedRole) ? selectedRole : 'STUDENT')
+                        }}
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent transition-all bg-white text-black appearance-none cursor-pointer"
                       >
                         <option value="STUDENT">Student</option>
                         <option value="LECTURER">Lecturer</option>
-                        <option value="TECHNICIAN">Technician</option>
-                        <option value="MANAGER">Manager</option>
-                        <option value="ADMIN">Administrator</option>
                       </select>
                     </div>
                   </div>

@@ -130,6 +130,13 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "An account with this email already exists."));
         }
 
+        final Role requestedRole;
+        try {
+            requestedRole = resolvePublicRegistrationRole(request.role());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+
         // Verify the code first
         boolean verified = emailVerificationService.verifyEmailCode(request.email(), request.verificationCode());
         if (!verified) {
@@ -144,13 +151,7 @@ public class AuthController {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setEmailVerified(true);
         user.setEmailVerifiedAt(LocalDateTime.now());
-
-        // Assign role (default to STUDENT if not provided or invalid)
-        try {
-            user.setRole(Role.valueOf(request.role().toUpperCase()));
-        } catch (Exception e) {
-            user.setRole(Role.STUDENT);
-        }
+        user.setRole(requestedRole);
 
         userRepository.save(user);
 
@@ -206,17 +207,19 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "An account with this email already exists."));
         }
 
+        final Role requestedRole;
+        try {
+            requestedRole = resolvePublicRegistrationRole(request.role());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+
         User user = User.builder()
                 .email(request.email())
                 .name(request.name())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .build();
-
-        try {
-            user.setRole(Role.valueOf(request.role().toUpperCase()));
-        } catch (Exception e) {
-            user.setRole(Role.STUDENT);
-        }
+        user.setRole(requestedRole);
 
         // Explicitly set as not verified (needs email verification)
         user.setEmailVerified(false);
@@ -360,5 +363,18 @@ public class AuthController {
         map.put("hasPassword", user.getPasswordHash() != null && !user.getPasswordHash().isEmpty());
         map.put("emailVerified", user.isEmailVerified());
         return map;
+    }
+
+    private Role resolvePublicRegistrationRole(String requestedRole) {
+        if (requestedRole == null || requestedRole.isBlank()) {
+            return Role.STUDENT;
+        }
+
+        Role role = Role.valueOf(requestedRole.trim().toUpperCase());
+        if (role == Role.STUDENT || role == Role.LECTURER) {
+            return role;
+        }
+
+        throw new IllegalArgumentException("Only STUDENT and LECTURER accounts can be self-registered.");
     }
 }
