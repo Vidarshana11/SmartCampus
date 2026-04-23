@@ -23,6 +23,7 @@ export default function AppShell({ children }) {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [announcementSearchTerm, setAnnouncementSearchTerm] = useState('')
 
   const isAdmin = user?.role === 'ADMIN'
   const canCreateAnnouncements = user?.role === 'LECTURER' || user?.role === 'MANAGER'
@@ -48,6 +49,12 @@ export default function AppShell({ children }) {
   const handleLogout = () => {
     logout()
     navigate('/', { replace: true })
+  }
+
+  const handleAnnouncementSearch = (event) => {
+    event.preventDefault()
+    const query = announcementSearchTerm.trim()
+    navigate(query ? `/announcements?search=${encodeURIComponent(query)}` : '/announcements')
   }
 
   const mainNavItems = [
@@ -107,16 +114,18 @@ export default function AppShell({ children }) {
             </div>
 
             {/* Center: Quick Search */}
-            <div className="hidden md:flex flex-1 max-w-md mx-8">
+            <form onSubmit={handleAnnouncementSearch} className="hidden md:flex flex-1 max-w-md mx-8">
               <div className="relative w-full">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search courses, resources, announcements..."
+                  value={announcementSearchTerm}
+                  onChange={(event) => setAnnouncementSearchTerm(event.target.value)}
+                  placeholder="Search announcements..."
                   className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:bg-white/15 focus:border-white/30 text-sm"
                 />
               </div>
-            </div>
+            </form>
 
             {/* Right: User Actions */}
             <div className="flex items-center gap-2 sm:gap-4">

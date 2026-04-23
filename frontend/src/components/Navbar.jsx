@@ -21,6 +21,7 @@ export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [announcementSearchTerm, setAnnouncementSearchTerm] = useState('')
   const campusLogo = '/universityImage.png'
 
   const isAdmin = user?.role === 'ADMIN'
@@ -41,6 +42,12 @@ export default function Navbar() {
   const handleLogout = () => {
     logout()
     navigate('/', { replace: true })
+  }
+
+  const handleAnnouncementSearch = (event) => {
+    event.preventDefault()
+    const query = announcementSearchTerm.trim()
+    navigate(query ? `/announcements?search=${encodeURIComponent(query)}` : '/announcements')
   }
 
   const navLinks = [
@@ -88,14 +95,16 @@ export default function Navbar() {
           {/* Right Side Actions */}
           <div className="flex items-center gap-3">
             {/* Search */}
-            <div className="hidden sm:flex items-center bg-white/10 rounded-lg px-3 py-1.5">
+            <form onSubmit={handleAnnouncementSearch} className="hidden sm:flex items-center bg-white/10 rounded-lg px-3 py-1.5">
               <FaSearch className="w-4 h-4 text-white/60" />
               <input
                 type="text"
-                placeholder="Search..."
+                value={announcementSearchTerm}
+                onChange={(event) => setAnnouncementSearchTerm(event.target.value)}
+                placeholder="Search announcements"
                 className="bg-transparent border-none outline-none text-white placeholder-white/50 text-sm ml-2 w-32 lg:w-48"
               />
-            </div>
+            </form>
 
             {/* Notifications - Member 4 Component */}
             <NotificationBell />
