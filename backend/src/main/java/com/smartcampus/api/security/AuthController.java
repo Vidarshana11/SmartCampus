@@ -3,6 +3,7 @@ package com.smartcampus.api.security;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,8 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Pattern STRONG_PASSWORD_PATTERN = Pattern.compile("^(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{6,}$");
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
@@ -130,6 +133,11 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "An account with this email already exists."));
         }
 
+        String passwordValidationError = validatePublicPassword(request.password());
+        if (passwordValidationError != null) {
+            return ResponseEntity.badRequest().body(Map.of("error", passwordValidationError));
+        }
+
         final Role requestedRole;
         try {
             requestedRole = resolvePublicRegistrationRole(request.role());
@@ -181,6 +189,11 @@ public class AuthController {
     // ===== NEW: Reset Password with Code =====
     @PostMapping("/reset-password-with-code")
     public ResponseEntity<Map<String, String>> resetPasswordWithCode(@Valid @RequestBody ResetWithCodeRequest request) {
+        String passwordValidationError = validatePublicPassword(request.newPassword());
+        if (passwordValidationError != null) {
+            return ResponseEntity.badRequest().body(Map.of("error", passwordValidationError));
+        }
+
         boolean resetSuccess = passwordResetService.resetPassword(request.email(), request.resetCode(), request.newPassword());
         if (!resetSuccess) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -205,6 +218,11 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             return ResponseEntity.badRequest().body(Map.of("error", "An account with this email already exists."));
+        }
+
+        String passwordValidationError = validatePublicPassword(request.password());
+        if (passwordValidationError != null) {
+            return ResponseEntity.badRequest().body(Map.of("error", passwordValidationError));
         }
 
         final Role requestedRole;
@@ -322,6 +340,11 @@ public class AuthController {
     // ===== Reset Password (Legacy) =====
     @PostMapping("/reset-password")
     public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        String passwordValidationError = validatePublicPassword(request.newPassword());
+        if (passwordValidationError != null) {
+            return ResponseEntity.badRequest().body(Map.of("error", passwordValidationError));
+        }
+
         boolean resetSuccess = passwordResetService.resetPassword(request.token(), request.newPassword());
         if (!resetSuccess) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -376,5 +399,15 @@ public class AuthController {
         }
 
         throw new IllegalArgumentException("Only STUDENT and LECTURER accounts can be self-registered.");
+    }
+
+    private String validatePublicPassword(String password) {
+        if (password == null || password.isBlank()) {
+            return "Password is required";
+        }
+        if (!STRONG_PASSWORD_PATTERN.matcher(password).matches()) {
+            return "Password must be at least 6 characters and include a capital letter, a number, and a symbol";
+        }
+        return null;
     }
 }

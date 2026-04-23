@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -28,6 +28,30 @@ export default function Register() {
   const [error, setError] = useState(null)
   const [message, setMessage] = useState(null)
 
+  const passwordChecks = useMemo(() => {
+    const hasMinLength = password.length >= 6
+    const hasCapitalLetter = /[A-Z]/.test(password)
+    const hasNumber = /\d/.test(password)
+    const hasSymbol = /[^A-Za-z0-9]/.test(password)
+
+    return [
+      { key: 'length', label: 'At least 6 characters', passed: hasMinLength },
+      { key: 'capital', label: 'One capital letter', passed: hasCapitalLetter },
+      { key: 'number', label: 'One numeric character', passed: hasNumber },
+      { key: 'symbol', label: 'One symbol', passed: hasSymbol },
+    ]
+  }, [password])
+
+  const isPasswordStrong = passwordChecks.every((check) => check.passed)
+
+  const validatePassword = () => {
+    if (!isPasswordStrong) {
+      setError('Password must be at least 6 characters and include a capital letter, a number, and a symbol')
+      return false
+    }
+    return true
+  }
+
   // Step 1: Send verification code
   const handleRequestCode = async (e) => {
     e.preventDefault()
@@ -35,8 +59,7 @@ export default function Register() {
       setError('Please agree to the Terms of Service and Privacy Policy')
       return
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long')
+    if (!validatePassword()) {
       return
     }
 
@@ -255,6 +278,7 @@ export default function Register() {
                         className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent transition-all text-black placeholder:text-gray-400"
                         required
                         minLength={6}
+                        autoComplete="new-password"
                       />
                       <button
                         type="button"
@@ -264,7 +288,19 @@ export default function Register() {
                         {showPassword ? <FaEyeSlash className="w-5 h-5" /> : <FaEye className="w-5 h-5" />}
                       </button>
                     </div>
-                    <p className="mt-1.5 text-xs text-gray-500">Must be at least 6 characters long</p>
+                    <div className="mt-3 space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                      <p className="text-xs font-semibold text-gray-700">Password must include:</p>
+                      <div className="space-y-2">
+                        {passwordChecks.map((check) => (
+                          <div key={check.key} className="flex items-center gap-2 text-xs">
+                            <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${check.passed ? 'bg-emerald-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                              {check.passed ? '✓' : '•'}
+                            </span>
+                            <span className={check.passed ? 'text-emerald-700' : 'text-gray-600'}>{check.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div>
@@ -308,7 +344,7 @@ export default function Register() {
 
                   <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || !isPasswordStrong}
                     className="w-full py-3 px-4 bg-[#003366] hover:bg-[#004080] text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {submitting ? (

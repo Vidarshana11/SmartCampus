@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import Cropper from 'react-easy-crop'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
@@ -33,6 +33,22 @@ const AccountManagement = () => {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
+
+  const passwordChecks = useMemo(() => {
+    const hasMinLength = newPassword.length >= 6
+    const hasCapitalLetter = /[A-Z]/.test(newPassword)
+    const hasNumber = /\d/.test(newPassword)
+    const hasSymbol = /[^A-Za-z0-9]/.test(newPassword)
+
+    return [
+      { key: 'length', label: 'At least 6 characters', passed: hasMinLength },
+      { key: 'capital', label: 'One capital letter', passed: hasCapitalLetter },
+      { key: 'number', label: 'One numeric character', passed: hasNumber },
+      { key: 'symbol', label: 'One symbol', passed: hasSymbol },
+    ]
+  }, [newPassword])
+
+  const isPasswordStrong = passwordChecks.every((check) => check.passed)
 
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels)
@@ -177,8 +193,8 @@ const AccountManagement = () => {
       return
     }
 
-    if (newPassword.length < 6) {
-      setError('New password must be at least 6 characters')
+    if (!isPasswordStrong) {
+      setError('Password must be at least 6 characters and include a capital letter, a number, and a symbol')
       return
     }
 
@@ -421,6 +437,7 @@ const AccountManagement = () => {
                     onChange={(e) => setNewPassword(e.target.value)}
                     disabled={loading}
                     placeholder="Enter new password (min 6 characters)"
+                    autoComplete="new-password"
                   />
                   <button
                     type="button"
@@ -429,6 +446,19 @@ const AccountManagement = () => {
                   >
                     {showNewPassword ? <FiEyeOff /> : <FiEye />}
                   </button>
+                </div>
+                <div className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-xs font-semibold text-gray-700">Password must include:</p>
+                  <div className="space-y-2">
+                    {passwordChecks.map((check) => (
+                      <div key={check.key} className="flex items-center gap-2 text-xs">
+                        <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${check.passed ? 'bg-emerald-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                          {check.passed ? '✓' : '•'}
+                        </span>
+                        <span className={check.passed ? 'text-emerald-700' : 'text-gray-600'}>{check.label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -447,7 +477,7 @@ const AccountManagement = () => {
                 <button className="btn-cancel" onClick={() => setShowPasswordForm(false)}>
                   Cancel
                 </button>
-                <button className="btn-primary" onClick={handleChangePassword} disabled={loading}>
+                <button className="btn-primary" onClick={handleChangePassword} disabled={loading || !isPasswordStrong}>
                   {loading ? 'Changing...' : hasPassword ? 'Change Password' : 'Set Password'}
                 </button>
               </div>
