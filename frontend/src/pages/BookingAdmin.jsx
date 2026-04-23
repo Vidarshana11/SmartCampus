@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../auth/AuthProvider';
-import { useNavigate } from 'react-router-dom';
 import bookingService from '../services/bookingService';
 
 const statusColors = {
@@ -12,7 +11,6 @@ const statusColors = {
 
 const BookingAdmin = () => {
   const { token } = useAuth();
-  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -77,12 +75,6 @@ const BookingAdmin = () => {
 
         <div className="flex justify-between items-center mb-8 border-b pb-4">
           <h1 className="text-3xl font-bold text-black uppercase tracking-tight">Booking Management</h1>
-          <button
-            onClick={() => navigate('/bookings/analytics')}
-            className="bg-black text-white px-5 py-2 rounded-full font-black text-sm uppercase tracking-widest hover:bg-blue-600 transition-all"
-          >
-            Analytics →
-          </button>
         </div>
 
         {/* Filter Tabs */}

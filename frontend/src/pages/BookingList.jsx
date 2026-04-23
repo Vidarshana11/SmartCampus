@@ -42,6 +42,12 @@ const BookingList = () => {
     if (!authLoading) fetchBookings();
   }, [authLoading, fetchBookings]);
 
+  useEffect(() => {
+    if (!authLoading && isAdmin) {
+      navigate('/bookings/admin', { replace: true });
+    }
+  }, [authLoading, isAdmin, navigate]);
+
   const handleCancel = async (id) => {
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
     setCancellingId(id);
@@ -79,6 +85,8 @@ const BookingList = () => {
       <div className="font-bold text-xl">Verifying access...</div>
     </div>
   );
+
+  if (isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-white text-black p-6">

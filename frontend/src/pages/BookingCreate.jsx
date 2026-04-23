@@ -5,7 +5,7 @@ import bookingService from '../services/bookingService';
 import resourceService from '../services/resourceService';
 
 const BookingCreate = () => {
-  const { token } = useAuth();
+  const { token, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -30,6 +30,13 @@ const BookingCreate = () => {
     };
     if (token) fetchResources();
   }, [token]);
+
+  useEffect(() => {
+    const isAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+    if (!authLoading && isAdmin) {
+      navigate('/bookings/admin', { replace: true });
+    }
+  }, [authLoading, user, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
