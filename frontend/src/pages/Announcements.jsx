@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { FaArrowLeft, FaBell, FaClock } from 'react-icons/fa'
 import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -8,9 +8,11 @@ import { getAllAnnouncements, getAnnouncementUrgencyMeta } from '../services/not
 export default function Announcements() {
   const { token } = useAuth()
   usePageTitle('Announcements')
+  const [searchParams] = useSearchParams()
   const [announcements, setAnnouncements] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const searchQuery = searchParams.get('search')?.trim().toLowerCase() || ''
 
   useEffect(() => {
     if (!token) return undefined
@@ -58,6 +60,23 @@ export default function Announcements() {
     })
   }
 
+  const filteredAnnouncements = useMemo(() => {
+    if (!searchQuery) return announcements
+
+    return announcements.filter((announcement) => {
+      const title = announcement.title?.toLowerCase() || ''
+      const message = announcement.message?.toLowerCase() || ''
+      const type = announcement.type?.toLowerCase() || ''
+      const targetRoles = typeof announcement.targetRoles === 'string'
+        ? announcement.targetRoles.toLowerCase()
+        : Array.isArray(announcement.targetRoles)
+          ? announcement.targetRoles.join(' ').toLowerCase()
+          : ''
+
+      return [title, message, type, targetRoles].some((value) => value.includes(searchQuery))
+    })
+  }, [announcements, searchQuery])
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -67,7 +86,7 @@ export default function Announcements() {
             All Announcements
           </h1>
           <p className="text-sm text-gray-600 mt-1">
-            Admin-posted announcements for your account.
+            {searchQuery ? `Search results for "${searchQuery}".` : 'Announcements for your account.'}
           </p>
         </div>
 
@@ -98,9 +117,15 @@ export default function Announcements() {
         </div>
       )}
 
-      {!loading && !error && announcements.length > 0 && (
+      {!loading && !error && announcements.length > 0 && filteredAnnouncements.length === 0 && (
+        <div className="bg-white rounded-xl p-4 border border-gray-200 text-sm text-gray-600">
+          No announcements match your search.
+        </div>
+      )}
+
+      {!loading && !error && filteredAnnouncements.length > 0 && (
         <div className="space-y-3">
-          {announcements.map((announcement) => {
+          {filteredAnnouncements.map((announcement) => {
             const urgencyMeta = getAnnouncementUrgencyMeta(announcement.type)
             return (
               <div
