@@ -17,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -230,7 +231,10 @@ public class NotificationController {
                     request.message(),
                     announcementType,
                     NotificationCategory.SYSTEM,
-                    request.targetRoles()
+                    request.targetRoles(),
+                    request.scheduleAt(),
+                    request.expiresAt(),
+                    request.recurrenceMinutes()
             );
 
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -275,7 +279,10 @@ public class NotificationController {
                             campaignId,
                             request.title(),
                             request.message(),
-                            request.enabled()
+                        request.enabled(),
+                        request.scheduleAt(),
+                        request.expiresAt(),
+                        request.recurrenceMinutes()
                     );
             return ResponseEntity.ok(updated);
         } catch (EntityNotFoundException ex) {
@@ -342,13 +349,22 @@ public class NotificationController {
 
             String urgency,
 
-            List<Role> targetRoles
+                List<Role> targetRoles,
+
+                LocalDateTime scheduleAt,
+
+                LocalDateTime expiresAt,
+
+                Integer recurrenceMinutes
     ) {}
 
     public record AdminNotificationUpdateRequest(
             String title,
             String message,
-            Boolean enabled
+            Boolean enabled,
+            LocalDateTime scheduleAt,
+            LocalDateTime expiresAt,
+            Integer recurrenceMinutes
     ) {}
 
     private String getRootCauseMessage(Throwable throwable) {

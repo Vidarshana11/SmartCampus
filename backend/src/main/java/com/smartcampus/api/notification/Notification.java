@@ -56,6 +56,21 @@ public class Notification {
     @Column(name = "recipient_count")
     private Integer recipientCount;
 
+    @Column(name = "scheduled_at")
+    private LocalDateTime scheduledAt;
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
+    @Column(name = "recurrence_minutes")
+    private Integer recurrenceMinutes;
+
+    @Column(name = "next_reminder_at")
+    private LocalDateTime nextReminderAt;
+
+    @Column(name = "last_reminder_at")
+    private LocalDateTime lastReminderAt;
+
     @Column(name = "related_entity_id")
     private Long relatedEntityId;
 

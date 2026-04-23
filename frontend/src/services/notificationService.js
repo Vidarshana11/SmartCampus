@@ -206,6 +206,9 @@ export const createAnnouncement = async (token, {
   message,
   urgency = ANNOUNCEMENT_URGENCY.NORMAL,
   targetRoles = [],
+  scheduleAt = null,
+  expiresAt = null,
+  recurrenceMinutes = null,
 }) => {
   const urgencyType = mapUrgencyToNotificationType(urgency)
   const res = await apiClient.post('/api/notifications/admin/announcements', {
@@ -214,6 +217,9 @@ export const createAnnouncement = async (token, {
     urgency,
     type: urgencyType,
     targetRoles,
+    scheduleAt,
+    expiresAt,
+    recurrenceMinutes,
   }, {
     headers: getAuthHeader(token),
   })
@@ -238,12 +244,17 @@ export const getAdminNotificationHistory = async (token) => {
 export const updateAdminNotificationHistory = async (
   token,
   campaignId,
-  { title, message, enabled }
+  { title, message, enabled, scheduleAt, expiresAt, recurrenceMinutes }
 ) => {
   const payload = {}
   if (typeof title === 'string') payload.title = title
   if (typeof message === 'string') payload.message = message
   if (typeof enabled === 'boolean') payload.enabled = enabled
+  if (typeof scheduleAt === 'string') payload.scheduleAt = scheduleAt
+  if (typeof expiresAt === 'string') payload.expiresAt = expiresAt
+  if (typeof recurrenceMinutes === 'number' && Number.isFinite(recurrenceMinutes)) {
+    payload.recurrenceMinutes = recurrenceMinutes
+  }
 
   const encodedCampaignId = encodeURIComponent(campaignId)
   const res = await apiClient.put(`/api/notifications/admin/history/${encodedCampaignId}`, payload, {

@@ -14,6 +14,10 @@ export default function AnnouncementsTab({ token }) {
   const [urgency, setUrgency] = useState(ANNOUNCEMENT_URGENCY.NORMAL)
   const [recipientType, setRecipientType] = useState('all')
   const [selectedRoles, setSelectedRoles] = useState([])
+  const [scheduleAt, setScheduleAt] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
+  const [enableRecurrence, setEnableRecurrence] = useState(false)
+  const [recurrenceMinutes, setRecurrenceMinutes] = useState('1440')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
@@ -35,6 +39,19 @@ export default function AnnouncementsTab({ token }) {
       return
     }
 
+    if (scheduleAt && expiresAt && new Date(expiresAt) <= new Date(scheduleAt)) {
+      setError('Expiry time must be later than the scheduled time')
+      return
+    }
+
+    if (enableRecurrence) {
+      const parsedRecurrence = Number(recurrenceMinutes)
+      if (!Number.isFinite(parsedRecurrence) || parsedRecurrence <= 0) {
+        setError('Recurring reminder interval must be a positive number of minutes')
+        return
+      }
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -45,6 +62,9 @@ export default function AnnouncementsTab({ token }) {
         message: content.trim(),
         urgency,
         targetRoles: recipientType === 'roles' ? selectedRoles : [],
+        scheduleAt: scheduleAt || null,
+        expiresAt: expiresAt || null,
+        recurrenceMinutes: enableRecurrence ? Number(recurrenceMinutes) : null,
       }
 
       const response = await createAnnouncement(token, payload)
@@ -56,6 +76,10 @@ export default function AnnouncementsTab({ token }) {
       setUrgency(ANNOUNCEMENT_URGENCY.NORMAL)
       setRecipientType('all')
       setSelectedRoles([])
+      setScheduleAt('')
+      setExpiresAt('')
+      setEnableRecurrence(false)
+      setRecurrenceMinutes('1440')
 
       setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
@@ -229,6 +253,59 @@ export default function AnnouncementsTab({ token }) {
                 />
                 <span className="text-gray-900 font-medium">Users (Default)</span>
               </label>
+            </div>
+          )}
+        </div>
+
+        {/* Scheduling Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Schedule Start (Optional)</label>
+            <input
+              type="datetime-local"
+              value={scheduleAt}
+              onChange={(e) => setScheduleAt(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900"
+            />
+            <p className="text-xs text-gray-500 mt-1">Leave empty to publish immediately.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Expiry Time (Optional)</label>
+            <input
+              type="datetime-local"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900"
+            />
+            <p className="text-xs text-gray-500 mt-1">Announcement auto-expires after this time.</p>
+          </div>
+        </div>
+
+        {/* Recurring Reminders */}
+        <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={enableRecurrence}
+              onChange={(e) => setEnableRecurrence(e.target.checked)}
+              className="w-4 h-4 accent-blue-600"
+            />
+            <span className="text-sm font-semibold text-gray-800">Enable Recurring Reminders</span>
+          </label>
+
+          {enableRecurrence && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Reminder Interval (Minutes)</label>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={recurrenceMinutes}
+                onChange={(e) => setRecurrenceMinutes(e.target.value)}
+                className="w-full md:w-60 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900"
+              />
+              <p className="text-xs text-gray-500 mt-1">Example: 60 = hourly, 1440 = daily.</p>
             </div>
           )}
         </div>

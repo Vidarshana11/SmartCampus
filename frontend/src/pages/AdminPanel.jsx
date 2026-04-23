@@ -62,7 +62,13 @@ export default function AdminPanel() {
   const [notificationsError, setNotificationsError] = useState('')
   const [notificationHistory, setNotificationHistory] = useState([])
   const [editingNotificationId, setEditingNotificationId] = useState(null)
-  const [editDraft, setEditDraft] = useState({ title: '', message: '' })
+  const [editDraft, setEditDraft] = useState({
+    title: '',
+    message: '',
+    scheduleAt: '',
+    expiresAt: '',
+    recurrenceMinutes: '',
+  })
   const [savingCampaignId, setSavingCampaignId] = useState(null)
 
   usePageTitle('Admin Panel')
@@ -138,7 +144,7 @@ export default function AdminPanel() {
   const handleCloseNotifications = () => {
     setNotificationsOpen(false)
     setEditingNotificationId(null)
-    setEditDraft({ title: '', message: '' })
+    setEditDraft({ title: '', message: '', scheduleAt: '', expiresAt: '', recurrenceMinutes: '' })
   }
 
   const handleToggleNotification = async (notification) => {
@@ -170,11 +176,32 @@ export default function AdminPanel() {
     setEditDraft({
       title: notification.title,
       message: notification.message,
+      scheduleAt: toDatetimeLocalValue(notification.scheduledAt),
+      expiresAt: toDatetimeLocalValue(notification.expiresAt),
+      recurrenceMinutes: notification.recurrenceMinutes ? String(notification.recurrenceMinutes) : '',
     })
   }
 
   const handleEditSave = async (notification) => {
     if (!editDraft.title.trim() || !editDraft.message.trim()) return
+
+    const scheduleDate = editDraft.scheduleAt ? new Date(editDraft.scheduleAt) : null
+    const expiryDate = editDraft.expiresAt ? new Date(editDraft.expiresAt) : null
+    if (scheduleDate && expiryDate && expiryDate <= scheduleDate) {
+      setNotificationsError('Expiry time must be later than schedule time')
+      return
+    }
+
+    let recurrenceValue
+    if (editDraft.recurrenceMinutes !== '') {
+      const parsed = Number(editDraft.recurrenceMinutes)
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        setNotificationsError('Recurrence minutes must be 0 or a positive number')
+        return
+      }
+      recurrenceValue = parsed
+    }
+
     try {
       setSavingCampaignId(notification.campaignId)
       const updated = await updateAdminNotificationHistory(
@@ -183,6 +210,9 @@ export default function AdminPanel() {
         {
           title: editDraft.title.trim(),
           message: editDraft.message.trim(),
+          scheduleAt: editDraft.scheduleAt || undefined,
+          expiresAt: editDraft.expiresAt || undefined,
+          recurrenceMinutes: recurrenceValue,
         }
       )
       setNotificationHistory((previous) =>
@@ -192,7 +222,7 @@ export default function AdminPanel() {
       )
       setNotificationsError('')
       setEditingNotificationId(null)
-      setEditDraft({ title: '', message: '' })
+      setEditDraft({ title: '', message: '', scheduleAt: '', expiresAt: '', recurrenceMinutes: '' })
     } catch (err) {
       console.error('Failed to edit notification:', err)
       setNotificationsError(
@@ -205,7 +235,7 @@ export default function AdminPanel() {
 
   const handleEditCancel = () => {
     setEditingNotificationId(null)
-    setEditDraft({ title: '', message: '' })
+    setEditDraft({ title: '', message: '', scheduleAt: '', expiresAt: '', recurrenceMinutes: '' })
   }
 
   const handleDeleteNotification = async (notification) => {
@@ -223,7 +253,7 @@ export default function AdminPanel() {
       setNotificationsError('')
       if (editingNotificationId === notification.campaignId) {
         setEditingNotificationId(null)
-        setEditDraft({ title: '', message: '' })
+        setEditDraft({ title: '', message: '', scheduleAt: '', expiresAt: '', recurrenceMinutes: '' })
       }
     } catch (err) {
       console.error('Failed to delete notification:', err)
@@ -238,6 +268,15 @@ export default function AdminPanel() {
   const formatNotificationTime = (dateString) => {
     if (!dateString) return ''
     return new Date(dateString).toLocaleString()
+  }
+
+  const toDatetimeLocalValue = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return ''
+    const offset = date.getTimezoneOffset()
+    const localDate = new Date(date.getTime() - offset * 60000)
+    return localDate.toISOString().slice(0, 16)
   }
 
   const renderTabContent = () => {
@@ -401,16 +440,48 @@ export default function AdminPanel() {
                         type="text"
                         value={editDraft.title}
                         onChange={(event) => setEditDraft((prev) => ({ ...prev, title: event.target.value }))}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
                         placeholder="Notification title"
                       />
                       <textarea
                         value={editDraft.message}
                         onChange={(event) => setEditDraft((prev) => ({ ...prev, message: event.target.value }))}
                         rows={3}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-vertical"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 resize-vertical focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
                         placeholder="Notification message"
                       />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Schedule Start</label>
+                          <input
+                            type="datetime-local"
+                            value={editDraft.scheduleAt}
+                            onChange={(event) => setEditDraft((prev) => ({ ...prev, scheduleAt: event.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Expiry Time</label>
+                          <input
+                            type="datetime-local"
+                            value={editDraft.expiresAt}
+                            onChange={(event) => setEditDraft((prev) => ({ ...prev, expiresAt: event.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Recurrence (Minutes, optional)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={editDraft.recurrenceMinutes}
+                          onChange={(event) => setEditDraft((prev) => ({ ...prev, recurrenceMinutes: event.target.value }))}
+                          className="w-full md:w-60 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                          placeholder="0 to disable"
+                        />
+                      </div>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleEditSave(notification)}
@@ -447,6 +518,24 @@ export default function AdminPanel() {
                       </div>
 
                       <p className="text-sm text-gray-700 mt-3 whitespace-pre-wrap">{notification.message}</p>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                        {notification.scheduledAt && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 border border-gray-200">
+                            Scheduled: {formatNotificationTime(notification.scheduledAt)}
+                          </span>
+                        )}
+                        {notification.expiresAt && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 border border-gray-200">
+                            Expires: {formatNotificationTime(notification.expiresAt)}
+                          </span>
+                        )}
+                        {notification.recurrenceMinutes && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 border border-gray-200">
+                            Recurs every {notification.recurrenceMinutes} min
+                          </span>
+                        )}
+                      </div>
 
                       <div className="mt-4 flex items-center gap-3">
                         <button
