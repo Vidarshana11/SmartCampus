@@ -137,6 +137,22 @@ VITE_API_BASE_URL=http://localhost:8080
 
 ## Run The App
 
+## First-Run Admin Account
+
+On the first backend startup, the app seeds a bootstrap admin account if it does not already exist:
+
+- Email: `adminone@nust.lk`
+- Password: `Test1234`
+
+This account is created as an ADMIN user and is email-verified automatically. You can override the default bootstrap values with these backend properties:
+
+```properties
+app.bootstrap.admin.enabled=true
+app.bootstrap.admin.email=adminone@nust.lk
+app.bootstrap.admin.name=Admin One
+app.bootstrap.admin.password=Test1234
+```
+
 ### Backend
 macOS/Linux:
 ```bash
