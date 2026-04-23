@@ -59,7 +59,7 @@ export default function AppShell({ children }) {
 
   const mainNavItems = [
     { to: '/resources', label: 'Resources', icon: FaBuilding },
-    { to: '/bookings', label: 'Facility Booking', icon: FaClipboardList },
+    { to: isAdmin ? '/bookings/admin' : '/bookings', label: 'Facility Booking', icon: FaClipboardList },
     { to: '/tickets', label: 'Support Tickets', icon: FaTicketAlt },
     ...(canCreateAnnouncements ? [{ to: '/announcements/create', label: 'Create Announcements', icon: FaBullhorn }] : []),
   ]
@@ -252,7 +252,7 @@ export default function AppShell({ children }) {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 w-full">
           {children}
         </main>
       </div>
