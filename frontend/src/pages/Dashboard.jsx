@@ -20,6 +20,7 @@ export default function Dashboard() {
   const { token, user } = useAuth()
   usePageTitle('Dashboard')
   const userName = user?.name || 'Student'
+  const canCreateAnnouncements = user?.role === 'LECTURER' || user?.role === 'MANAGER'
   const [announcements, setAnnouncements] = useState([])
   const [announcementsLoading, setAnnouncementsLoading] = useState(false)
   const [announcementsError, setAnnouncementsError] = useState('')
@@ -160,6 +161,37 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {canCreateAnnouncements && (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="border-b border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-[#003366] p-2 text-white">
+                <FaPlus className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Create Announcements</h2>
+                <p className="text-sm text-slate-600">
+                  Open the dedicated announcement tab to send role-based messages.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-5 flex items-center justify-between gap-4 flex-wrap">
+            <p className="text-sm text-slate-600 max-w-2xl">
+              Use the announcement tab to create a scheduled or immediate message for the allowed audience.
+            </p>
+            <Link
+              to="/announcements/create"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#003366] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#002244]"
+            >
+              <FaPlus className="w-4 h-4" />
+              Open Create Tab
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-sky-50 to-blue-100 rounded-xl border border-blue-200 p-4 shadow-sm">

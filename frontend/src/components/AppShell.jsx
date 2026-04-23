@@ -14,6 +14,7 @@ import {
   FaGraduationCap,
   FaBuilding,
   FaClipboardList,
+  FaBullhorn,
   FaSearch
 } from 'react-icons/fa'
 
@@ -24,7 +25,20 @@ export default function AppShell({ children }) {
   const [currentTime, setCurrentTime] = useState(new Date())
 
   const isAdmin = user?.role === 'ADMIN'
+  const canCreateAnnouncements = user?.role === 'LECTURER' || user?.role === 'MANAGER'
   const userName = user?.name ?? 'Guest'
+  const getPortalLabel = () => {
+    switch (user?.role) {
+      case 'LECTURER':
+        return 'Lecturer Portal'
+      case 'MANAGER':
+        return 'Manager Portal'
+      case 'ADMIN':
+        return 'Admin Portal'
+      default:
+        return 'Student Portal'
+    }
+  }
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -40,6 +54,7 @@ export default function AppShell({ children }) {
     { to: '/resources', label: 'Resources', icon: FaBuilding },
     { to: '/bookings', label: 'Facility Booking', icon: FaClipboardList },
     { to: '/tickets', label: 'Support Tickets', icon: FaTicketAlt },
+    ...(canCreateAnnouncements ? [{ to: '/announcements/create', label: 'Create Announcements', icon: FaBullhorn }] : []),
   ]
 
   const adminNavItems = isAdmin
@@ -86,7 +101,7 @@ export default function AppShell({ children }) {
                 </div>
                 <div className="hidden sm:block">
                   <div className="text-white font-bold text-lg leading-tight">{BRAND_SHORT_NAME}</div>
-                  <div className="text-white/60 text-xs">Student Portal</div>
+                  <div className="text-white/60 text-xs">{getPortalLabel()}</div>
                 </div>
               </Link>
             </div>

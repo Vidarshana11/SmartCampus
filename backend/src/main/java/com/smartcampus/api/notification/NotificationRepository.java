@@ -55,6 +55,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     List<Notification> findByCampaignIdOrderByCreatedAtDesc(String campaignId);
 
+    List<Notification> findByCreatorUserIdOrderByCreatedAtDesc(Long creatorUserId);
+
     List<Notification> findByUserIsNullAndIsEnabledTrueOrderByCreatedAtDesc();
 
     @Query("SELECT n FROM Notification n " +

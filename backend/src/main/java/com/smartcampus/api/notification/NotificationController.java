@@ -218,23 +218,26 @@ public class NotificationController {
 
     /**
      * POST /api/notifications/admin/announcements - Create announcement for selected roles
-     * Admin can target specific roles, or all users if roles are omitted.
+     * ADMIN can target all roles, while MANAGER and LECTURER are limited to their allowed audiences.
      */
     @PostMapping("/admin/announcements")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, String>> createAnnouncement(
-            @Valid @RequestBody AnnouncementRequest request) {
+        @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'LECTURER')")
+        public ResponseEntity<Map<String, String>> createAnnouncement(
+            @Valid @RequestBody AnnouncementRequest request,
+            @AuthenticationPrincipal User currentUser) {
         try {
             NotificationType announcementType = resolveAnnouncementType(request.type(), request.urgency());
+            List<Role> targetRoles = resolveAnnouncementTargets(currentUser.getRole(), request.targetRoles());
             int recipientCount = notificationService.broadcastNotification(
                     request.title(),
                     request.message(),
                     announcementType,
                     NotificationCategory.SYSTEM,
-                    request.targetRoles(),
+                    targetRoles,
                     request.scheduleAt(),
                     request.expiresAt(),
-                    request.recurrenceMinutes()
+                    request.recurrenceMinutes(),
+                    currentUser.getId()
             );
 
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -260,6 +263,17 @@ public class NotificationController {
     public ResponseEntity<Map<String, Object>> getAdminNotificationHistory() {
         List<NotificationService.AdminNotificationHistoryDTO> history =
                 notificationService.getAdminNotificationHistory();
+        return ResponseEntity.ok(Map.of("notifications", history));
+    }
+
+    /**
+     * GET /api/notifications/announcements/my-history - Get announcements created by the current user.
+     */
+    @GetMapping("/announcements/my-history")
+    @PreAuthorize("hasAnyRole('LECTURER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<Map<String, Object>> getMyAnnouncementHistory(@AuthenticationPrincipal User user) {
+        List<NotificationService.AdminNotificationHistoryDTO> history =
+                notificationService.getAnnouncementHistoryByCreator(user.getId());
         return ResponseEntity.ok(Map.of("notifications", history));
     }
 
@@ -293,6 +307,38 @@ public class NotificationController {
     }
 
     /**
+     * PUT /api/notifications/announcements/my-history/{campaignId} - Update a campaign created by the current user.
+     */
+    @PutMapping("/announcements/my-history/{campaignId}")
+    @PreAuthorize("hasAnyRole('LECTURER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> updateMyAnnouncementHistory(
+            @PathVariable String campaignId,
+            @AuthenticationPrincipal User user,
+            @RequestBody AdminNotificationUpdateRequest request
+    ) {
+        try {
+            NotificationService.AdminNotificationHistoryDTO updated =
+                    notificationService.updateAnnouncementCampaignForCreator(
+                            user.getId(),
+                            campaignId,
+                            request.title(),
+                            request.message(),
+                            request.enabled(),
+                            request.scheduleAt(),
+                            request.expiresAt(),
+                            request.recurrenceMinutes()
+                    );
+            return ResponseEntity.ok(updated);
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", ex.getMessage()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    /**
      * DELETE /api/notifications/admin/history/{campaignId} - Delete a campaign notification.
      * Deletes all recipient notification rows in the campaign.
      */
@@ -307,6 +353,30 @@ public class NotificationController {
             ));
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    /**
+     * DELETE /api/notifications/announcements/my-history/{campaignId} - Delete a campaign created by the current user.
+     */
+    @DeleteMapping("/announcements/my-history/{campaignId}")
+    @PreAuthorize("hasAnyRole('LECTURER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> deleteMyAnnouncementHistory(
+            @PathVariable String campaignId,
+            @AuthenticationPrincipal User user
+    ) {
+        try {
+            int deletedCount = notificationService.deleteAnnouncementCampaignForCreator(user.getId(), campaignId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Notification campaign deleted successfully",
+                    "deletedCount", String.valueOf(deletedCount)
+            ));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", ex.getMessage()));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }
@@ -394,5 +464,37 @@ public class NotificationController {
             case "NORMAL" -> NotificationType.INFO;
             default -> NotificationType.INFO;
         };
+    }
+
+    private List<Role> resolveAnnouncementTargets(Role creatorRole, List<Role> requestedRoles) {
+        List<Role> normalizedRoles = requestedRoles == null
+                ? List.of()
+                : requestedRoles.stream().distinct().toList();
+
+        if (creatorRole == Role.ADMIN) {
+            return normalizedRoles;
+        }
+
+        List<Role> allowedRoles = switch (creatorRole) {
+            case MANAGER -> List.of(Role.STUDENT, Role.LECTURER, Role.TECHNICIAN);
+            case LECTURER -> List.of(Role.STUDENT);
+            default -> List.of();
+        };
+
+        if (allowedRoles.isEmpty()) {
+            throw new IllegalArgumentException("You are not allowed to create announcements.");
+        }
+        if (normalizedRoles.isEmpty()) {
+            throw new IllegalArgumentException("At least one target role is required.");
+        }
+
+        List<Role> invalidRoles = normalizedRoles.stream()
+                .filter(role -> !allowedRoles.contains(role))
+                .toList();
+        if (!invalidRoles.isEmpty()) {
+            throw new IllegalArgumentException("You are only allowed to target: " + allowedRoles.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(", ")));
+        }
+
+        return normalizedRoles;
     }
 }

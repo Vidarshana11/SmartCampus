@@ -56,6 +56,9 @@ public class Notification {
     @Column(name = "recipient_count")
     private Integer recipientCount;
 
+    @Column(name = "creator_user_id")
+    private Long creatorUserId;
+
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
 
