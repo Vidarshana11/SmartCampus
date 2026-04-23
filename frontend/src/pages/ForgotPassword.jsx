@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FaEnvelope, FaGraduationCap, FaKey, FaLock, FaEye, FaEyeSlash, FaCheckCircle } from 'react-icons/fa'
 import { sendPasswordResetCode, resetPasswordWithCode, verifyResetCode } from '../services/authService'
@@ -14,6 +14,22 @@ export default function ForgotPassword() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+
+  const passwordChecks = useMemo(() => {
+    const hasMinLength = newPassword.length >= 6
+    const hasCapitalLetter = /[A-Z]/.test(newPassword)
+    const hasNumber = /\d/.test(newPassword)
+    const hasSymbol = /[^A-Za-z0-9]/.test(newPassword)
+
+    return [
+      { key: 'length', label: 'At least 6 characters', passed: hasMinLength },
+      { key: 'capital', label: 'One capital letter', passed: hasCapitalLetter },
+      { key: 'number', label: 'One numeric character', passed: hasNumber },
+      { key: 'symbol', label: 'One symbol', passed: hasSymbol },
+    ]
+  }, [newPassword])
+
+  const isPasswordStrong = passwordChecks.every((check) => check.passed)
 
   // UI state
   const [step, setStep] = useState(1) // 1 = email, 2 = verify code, 3 = change password
@@ -67,8 +83,8 @@ export default function ForgotPassword() {
     e.preventDefault()
     setError(null)
 
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters.')
+    if (!isPasswordStrong) {
+      setError('Password must be at least 6 characters and include a capital letter, a number, and a symbol.')
       return
     }
     if (newPassword !== confirmPassword) {
@@ -280,6 +296,7 @@ export default function ForgotPassword() {
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#003366] focus:border-transparent text-black"
                   placeholder="At least 6 characters"
                   minLength={6}
+                  autoComplete="new-password"
                   required
                 />
                 <button
@@ -289,6 +306,20 @@ export default function ForgotPassword() {
                 >
                   {showPassword ? <FaEyeSlash className="w-4 h-4" /> : <FaEye className="w-4 h-4" />}
                 </button>
+              </div>
+            </div>
+
+            <div className="mt-3 space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs font-semibold text-gray-700">Password must include:</p>
+              <div className="space-y-2">
+                {passwordChecks.map((check) => (
+                  <div key={check.key} className="flex items-center gap-2 text-xs">
+                    <span className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${check.passed ? 'bg-emerald-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                      {check.passed ? '✓' : '•'}
+                    </span>
+                    <span className={check.passed ? 'text-emerald-700' : 'text-gray-600'}>{check.label}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -309,7 +340,7 @@ export default function ForgotPassword() {
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !isPasswordStrong}
               className="w-full py-3 px-4 bg-[#003366] hover:bg-[#004080] text-white font-semibold rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? 'Updating...' : 'Change Password'}

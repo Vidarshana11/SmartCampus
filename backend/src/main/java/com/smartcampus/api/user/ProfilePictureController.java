@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Profile Picture and Account Management Controller
@@ -34,6 +35,8 @@ import java.util.UUID;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class ProfilePictureController {
+
+    private static final Pattern STRONG_PASSWORD_PATTERN = Pattern.compile("^(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{6,}$");
 
     @Value("${file.upload-dir:uploads/}")
     private String uploadDir;
@@ -165,9 +168,9 @@ public class ProfilePictureController {
                     .body(Map.of("error", "New password is required"));
         }
 
-        if (request.newPassword().length() < 6) {
+        if (!STRONG_PASSWORD_PATTERN.matcher(request.newPassword()).matches()) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Password must be at least 6 characters"));
+                .body(Map.of("error", "Password must be at least 6 characters and include a capital letter, a number, and a symbol"));
         }
 
         // Update password

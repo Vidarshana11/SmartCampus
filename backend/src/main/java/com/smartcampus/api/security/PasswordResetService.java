@@ -10,9 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Service
 public class PasswordResetService {
+
+    private static final Pattern STRONG_PASSWORD_PATTERN = Pattern.compile("^(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{6,}$");
 
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -101,6 +104,10 @@ public class PasswordResetService {
     public boolean resetPassword(String email, String rawCode, String newPassword) {
         LocalDateTime now = LocalDateTime.now();
 
+        if (!isStrongPassword(newPassword)) {
+            return false;
+        }
+
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
             return false;
@@ -128,6 +135,10 @@ public class PasswordResetService {
     // Legacy method - kept for backwards compatibility with token-based reset
     @Transactional
     public boolean resetPassword(String rawToken, String newPassword) {
+        if (!isStrongPassword(newPassword)) {
+            return false;
+        }
+
         String tokenHash = tokenGeneratorService.hashToken(rawToken);
         LocalDateTime now = LocalDateTime.now();
 
@@ -154,6 +165,10 @@ public class PasswordResetService {
         for (PasswordResetToken token : passwordResetTokenRepository.findByUserAndConsumedAtIsNull(user)) {
             token.setConsumedAt(now);
         }
+    }
+
+    private boolean isStrongPassword(String password) {
+        return password != null && STRONG_PASSWORD_PATTERN.matcher(password).matches();
     }
 
 }
