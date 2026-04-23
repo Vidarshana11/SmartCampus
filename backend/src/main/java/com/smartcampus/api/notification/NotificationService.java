@@ -162,7 +162,7 @@ public class NotificationService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
-        List<Notification> roleBased = getRoleTargetedNotifications(user.getRole());
+        List<Notification> roleBased = getRoleTargetedNotifications(user.getRole(), LocalDateTime.now());
         if (roleBased.isEmpty()) {
             return;
         }
@@ -251,13 +251,41 @@ public class NotificationService {
      * @return number of notifications created
      */
     @Transactional
-    public int broadcastNotification(String title, String message, NotificationType type,
+    public int broadcastNotification(String title, String message, NotificationType type, 
                                      NotificationCategory category, List<Role> targetRoles) {
+        return broadcastNotification(title, message, type, category, targetRoles, null, null, null, null);
+    }
+
+    /**
+     * Broadcast with optional scheduling/expiry/recurrence.
+     */
+    @Transactional
+    public int broadcastNotification(String title, String message, NotificationType type, 
+                                     NotificationCategory category, List<Role> targetRoles, 
+                                     LocalDateTime scheduledAt, LocalDateTime expiresAt, 
+                                     Integer recurrenceMinutes, Long creatorUserId) {
         List<Role> rolesToTarget = resolveTargetRoles(targetRoles);
         List<User> recipients = userRepository.findByRoleIn(rolesToTarget);
 
         if (recipients.isEmpty()) {
             return 0;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime normalizedScheduledAt = scheduledAt;
+        LocalDateTime normalizedExpiresAt = expiresAt;
+        Integer normalizedRecurrenceMinutes = normalizeRecurrenceMinutes(recurrenceMinutes);
+
+        if (normalizedScheduledAt != null && normalizedExpiresAt != null && !normalizedExpiresAt.isAfter(normalizedScheduledAt)) {
+            throw new IllegalArgumentException("Expiry must be later than schedule time");
+        }
+        if (normalizedScheduledAt == null && normalizedExpiresAt != null && !normalizedExpiresAt.isAfter(now)) {
+            throw new IllegalArgumentException("Expiry must be in the future");
+        }
+
+        boolean startsImmediately = normalizedScheduledAt == null || !normalizedScheduledAt.isAfter(now);
+        if (startsImmediately && normalizedExpiresAt != null && !normalizedExpiresAt.isAfter(now)) {
+            throw new IllegalArgumentException("Announcement already expired");
         }
 
         String campaignId = UUID.randomUUID().toString();
@@ -270,11 +298,20 @@ public class NotificationService {
                 .type(type)
                 .category(category)
                 .isRead(false)
-                .isEnabled(true)
+                .isEnabled(startsImmediately)
                 .campaignId(campaignId)
+            .creatorUserId(creatorUserId)
                 .targetRoles(serializedRoles)
                 .recipientCount(recipients.size())
+                .scheduledAt(normalizedScheduledAt)
+                .expiresAt(normalizedExpiresAt)
+                .recurrenceMinutes(normalizedRecurrenceMinutes)
+                .nextReminderAt(resolveNextReminderAt(startsImmediately, normalizedScheduledAt, normalizedRecurrenceMinutes, now))
                 .build();
+
+        if (normalizedScheduledAt != null) {
+            notification.setCreatedAt(normalizedScheduledAt);
+        }
 
         try {
             notificationRepository.save(notification);
@@ -287,13 +324,103 @@ public class NotificationService {
         return recipients.size();
     }
 
+    @Transactional
+    public int activateScheduledAnnouncements() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Notification> dueAnnouncements = notificationRepository.findScheduledAnnouncementsToActivate(now);
+        if (dueAnnouncements.isEmpty()) {
+            return 0;
+        }
+
+        for (Notification announcement : dueAnnouncements) {
+            if (announcement.getRecurrenceMinutes() != null && announcement.getRecurrenceMinutes() > 0) {
+                LocalDateTime base = announcement.getScheduledAt() != null ? announcement.getScheduledAt() : now;
+                LocalDateTime next = base.plusMinutes(announcement.getRecurrenceMinutes());
+                while (!next.isAfter(now)) {
+                    next = next.plusMinutes(announcement.getRecurrenceMinutes());
+                }
+                announcement.setNextReminderAt(next);
+            }
+        }
+
+        notificationRepository.saveAll(dueAnnouncements);
+        return dueAnnouncements.size();
+    }
+
+    @Transactional
+    public int expireAnnouncements() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Notification> toExpire = notificationRepository.findAnnouncementsToExpire(now);
+        if (toExpire.isEmpty()) {
+            return 0;
+        }
+
+        for (Notification notification : toExpire) {
+            notification.setEnabled(false);
+        }
+
+        notificationRepository.saveAll(toExpire);
+        return toExpire.size();
+    }
+
+    @Transactional
+    public int processRecurringReminders() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Notification> dueReminders = notificationRepository.findRecurringAnnouncementsDue(now);
+        if (dueReminders.isEmpty()) {
+            return 0;
+        }
+
+        int generated = 0;
+        for (Notification template : dueReminders) {
+            Integer recurrenceMinutes = template.getRecurrenceMinutes();
+            if (recurrenceMinutes == null || recurrenceMinutes <= 0) {
+                continue;
+            }
+
+            List<Role> targetRoles = parseTargetRoles(template.getTargetRoles());
+            int recipientCount = countRecipientsByRoles(targetRoles);
+            if (recipientCount > 0) {
+                Notification reminder = Notification.builder()
+                        .user(null)
+                        .title(template.getTitle().startsWith("Reminder:") ? template.getTitle() : "Reminder: " + template.getTitle())
+                        .message(template.getMessage())
+                        .type(template.getType())
+                        .category(template.getCategory())
+                        .isRead(false)
+                        .isEnabled(true)
+                        .campaignId(UUID.randomUUID().toString())
+                        .creatorUserId(template.getCreatorUserId())
+                        .targetRoles(template.getTargetRoles())
+                        .recipientCount(recipientCount)
+                        .scheduledAt(now)
+                        .expiresAt(template.getExpiresAt())
+                        .relatedEntityId(template.getRelatedEntityId())
+                        .relatedEntityType(template.getRelatedEntityType())
+                        .build();
+                notificationRepository.save(reminder);
+                generated++;
+            }
+
+            template.setLastReminderAt(now);
+            LocalDateTime next = template.getNextReminderAt() != null ? template.getNextReminderAt() : now.plusMinutes(recurrenceMinutes);
+            while (!next.isAfter(now)) {
+                next = next.plusMinutes(recurrenceMinutes);
+            }
+            template.setNextReminderAt(next);
+        }
+
+        notificationRepository.saveAll(dueReminders);
+        return generated;
+    }
+
     /**
      * Delete old read notifications (for cleanup)
      */
     @Transactional
     public void deleteOldReadNotifications(Long userId, int daysOld) {
         LocalDateTime cutoffDate = LocalDateTime.now().minusDays(daysOld);
-        List<Notification> oldNotifications = notificationRepository.findByUserIdAndIsEnabledTrueOrderByCreatedAtDesc(userId)
+        List<Notification> oldNotifications = notificationRepository.findVisiblePersonalNotifications(userId, LocalDateTime.now())
                 .stream()
                 .filter(n -> n.isRead() && n.getReadAt() != null && n.getReadAt().isBefore(cutoffDate))
                 .collect(Collectors.toList());
@@ -317,6 +444,7 @@ public class NotificationService {
      */
     @Transactional
     public List<AdminNotificationHistoryDTO> getAdminNotificationHistory() {
+        syncAnnouncementLifecycleStates();
         consolidateLegacyBroadcastRows();
         List<Notification> notifications = notificationRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
                 .stream()
@@ -341,6 +469,35 @@ public class NotificationService {
                 .toList();
     }
 
+        /**
+         * Get announcement history for the current creator.
+         */
+        @Transactional(readOnly = true)
+        public List<AdminNotificationHistoryDTO> getAnnouncementHistoryByCreator(Long creatorUserId) {
+        syncAnnouncementLifecycleStates();
+        List<Notification> notifications = notificationRepository.findByCreatorUserIdOrderByCreatedAtDesc(creatorUserId)
+            .stream()
+            .filter(n -> n.getCategory() != NotificationCategory.ADMIN_ALERT
+                && n.getCategory() != NotificationCategory.TICKET
+                && n.getCategory() != NotificationCategory.BOOKING)
+            .toList();
+
+        Map<String, List<Notification>> groupedByCampaign = new LinkedHashMap<>();
+        for (Notification notification : notifications) {
+            String historyKey = notification.getCampaignId() != null
+                ? notification.getCampaignId()
+                : "legacy-" + notification.getId();
+            groupedByCampaign
+                .computeIfAbsent(historyKey, ignored -> new ArrayList<>())
+                .add(notification);
+        }
+
+        return groupedByCampaign.entrySet()
+            .stream()
+            .map(entry -> toAdminHistoryDTO(entry.getKey(), entry.getValue()))
+            .toList();
+        }
+
     /**
      * Update title/message/enabled for all notifications in a campaign.
      * Updates propagate to all recipients including users who already marked as read.
@@ -350,7 +507,10 @@ public class NotificationService {
             String campaignId,
             String title,
             String message,
-            Boolean enabled
+            Boolean enabled,
+            LocalDateTime scheduleAt,
+            LocalDateTime expiresAt,
+            Integer recurrenceMinutes
     ) {
         List<Notification> campaignNotifications;
         if (campaignId.startsWith("legacy-")) {
@@ -369,6 +529,7 @@ public class NotificationService {
 
         String normalizedTitle = title != null ? title.trim() : null;
         String normalizedMessage = message != null ? message.trim() : null;
+        LocalDateTime now = LocalDateTime.now();
 
         if (normalizedTitle != null && normalizedTitle.isBlank()) {
             throw new IllegalArgumentException("Title cannot be blank");
@@ -376,9 +537,38 @@ public class NotificationService {
         if (normalizedMessage != null && normalizedMessage.isBlank()) {
             throw new IllegalArgumentException("Message cannot be blank");
         }
-        if (normalizedTitle == null && normalizedMessage == null && enabled == null) {
+        if (normalizedTitle == null && normalizedMessage == null && enabled == null
+                && scheduleAt == null && expiresAt == null && recurrenceMinutes == null) {
             throw new IllegalArgumentException("No updates provided");
         }
+
+        Notification baseline = campaignNotifications.get(0);
+        LocalDateTime effectiveScheduleAt = scheduleAt != null ? scheduleAt : baseline.getScheduledAt();
+        LocalDateTime effectiveExpiresAt = expiresAt != null ? expiresAt : baseline.getExpiresAt();
+
+        if (effectiveScheduleAt != null && effectiveExpiresAt != null && !effectiveExpiresAt.isAfter(effectiveScheduleAt)) {
+            throw new IllegalArgumentException("Expiry must be later than schedule time");
+        }
+        if (effectiveScheduleAt == null && effectiveExpiresAt != null && !effectiveExpiresAt.isAfter(now)) {
+            throw new IllegalArgumentException("Expiry must be in the future");
+        }
+
+        if (enabled != null && enabled && effectiveScheduleAt != null && effectiveScheduleAt.isAfter(now)) {
+            throw new IllegalArgumentException("Cannot enable announcement before its schedule time");
+        }
+        if (enabled != null && enabled && effectiveExpiresAt != null && !effectiveExpiresAt.isAfter(now)) {
+            throw new IllegalArgumentException("Cannot enable announcement that is already expired");
+        }
+
+        boolean shouldAutoRecomputeEnabled = enabled == null && (scheduleAt != null || expiresAt != null);
+        Boolean effectiveEnabled = enabled;
+        if (shouldAutoRecomputeEnabled) {
+            boolean withinScheduleWindow = effectiveScheduleAt == null || !effectiveScheduleAt.isAfter(now);
+            boolean notExpired = effectiveExpiresAt == null || effectiveExpiresAt.isAfter(now);
+            effectiveEnabled = withinScheduleWindow && notExpired;
+        }
+
+        boolean shouldRecomputeReminders = scheduleAt != null || expiresAt != null || recurrenceMinutes != null || effectiveEnabled != null;
 
         for (Notification notification : campaignNotifications) {
             if (normalizedTitle != null) {
@@ -387,13 +577,46 @@ public class NotificationService {
             if (normalizedMessage != null) {
                 notification.setMessage(normalizedMessage);
             }
-            if (enabled != null) {
-                notification.setEnabled(enabled);
+            if (scheduleAt != null) {
+                notification.setScheduledAt(scheduleAt);
+            }
+            if (expiresAt != null) {
+                notification.setExpiresAt(expiresAt);
+            }
+            if (recurrenceMinutes != null) {
+                notification.setRecurrenceMinutes(normalizeRecurrenceForUpdate(recurrenceMinutes));
+            }
+            if (effectiveEnabled != null) {
+                notification.setEnabled(effectiveEnabled);
+            }
+            if (shouldRecomputeReminders) {
+                notification.setNextReminderAt(recomputeNextReminderAt(notification, now));
+                if (notification.getRecurrenceMinutes() == null) {
+                    notification.setLastReminderAt(null);
+                }
             }
         }
 
         notificationRepository.saveAll(campaignNotifications);
         return toAdminHistoryDTO(campaignId, campaignNotifications);
+    }
+
+    /**
+     * Update a campaign owned by the creator.
+     */
+    @Transactional
+    public AdminNotificationHistoryDTO updateAnnouncementCampaignForCreator(
+            Long creatorUserId,
+            String campaignId,
+            String title,
+            String message,
+            Boolean enabled,
+            LocalDateTime scheduleAt,
+            LocalDateTime expiresAt,
+            Integer recurrenceMinutes
+    ) {
+        List<Notification> campaignNotifications = findCreatorCampaignNotifications(creatorUserId, campaignId);
+        return updateCampaignNotifications(campaignId, campaignNotifications, title, message, enabled, scheduleAt, expiresAt, recurrenceMinutes);
     }
 
     /**
@@ -424,6 +647,19 @@ public class NotificationService {
         return deletedCount;
     }
 
+    /**
+     * Delete a campaign owned by the creator.
+     */
+    @Transactional
+    public int deleteAnnouncementCampaignForCreator(Long creatorUserId, String campaignId) {
+        List<Notification> campaignNotifications = findCreatorCampaignNotifications(creatorUserId, campaignId);
+        List<Long> notificationIds = campaignNotifications.stream().map(Notification::getId).toList();
+        notificationReadStatusRepository.deleteByNotificationIdIn(notificationIds);
+        int deletedCount = campaignNotifications.size();
+        notificationRepository.deleteAll(campaignNotifications);
+        return deletedCount;
+    }
+
     private AdminNotificationHistoryDTO toAdminHistoryDTO(
             String campaignId,
             List<Notification> campaignNotifications
@@ -432,7 +668,7 @@ public class NotificationService {
         long readCount;
         int recipientCount;
         if (isSharedNotification(latest)) {
-            readCount = notificationReadStatusRepository.countByNotificationId(latest.getId());
+                readCount = notificationReadStatusRepository.countByNotificationId(latest.getId());
             recipientCount = latest.getRecipientCount() != null
                     ? latest.getRecipientCount()
                     : countRecipientsByRoles(parseTargetRoles(latest.getTargetRoles()));
@@ -448,11 +684,129 @@ public class NotificationService {
                 latest.getType(),
                 latest.getCategory(),
                 latest.isEnabled(),
+            latest.getCreatorUserId(),
+            latest.getTargetRoles(),
                 latest.getCreatedAt(),
                 latest.getUpdatedAt(),
+                latest.getScheduledAt(),
+                latest.getExpiresAt(),
+                latest.getRecurrenceMinutes(),
+                latest.getNextReminderAt(),
                 recipientCount,
                 readCount
         );
+    }
+
+    private AdminNotificationHistoryDTO updateCampaignNotifications(
+            String campaignId,
+            List<Notification> campaignNotifications,
+            String title,
+            String message,
+            Boolean enabled,
+            LocalDateTime scheduleAt,
+            LocalDateTime expiresAt,
+            Integer recurrenceMinutes
+    ) {
+        if (campaignNotifications.isEmpty()) {
+            throw new EntityNotFoundException("Notification campaign not found: " + campaignId);
+        }
+
+        String normalizedTitle = title != null ? title.trim() : null;
+        String normalizedMessage = message != null ? message.trim() : null;
+        LocalDateTime now = LocalDateTime.now();
+
+        if (normalizedTitle != null && normalizedTitle.isBlank()) {
+            throw new IllegalArgumentException("Title cannot be blank");
+        }
+        if (normalizedMessage != null && normalizedMessage.isBlank()) {
+            throw new IllegalArgumentException("Message cannot be blank");
+        }
+        if (normalizedTitle == null && normalizedMessage == null && enabled == null
+                && scheduleAt == null && expiresAt == null && recurrenceMinutes == null) {
+            throw new IllegalArgumentException("No updates provided");
+        }
+
+        Notification baseline = campaignNotifications.get(0);
+        LocalDateTime effectiveScheduleAt = scheduleAt != null ? scheduleAt : baseline.getScheduledAt();
+        LocalDateTime effectiveExpiresAt = expiresAt != null ? expiresAt : baseline.getExpiresAt();
+
+        if (effectiveScheduleAt != null && effectiveExpiresAt != null && !effectiveExpiresAt.isAfter(effectiveScheduleAt)) {
+            throw new IllegalArgumentException("Expiry must be later than schedule time");
+        }
+        if (effectiveScheduleAt == null && effectiveExpiresAt != null && !effectiveExpiresAt.isAfter(now)) {
+            throw new IllegalArgumentException("Expiry must be in the future");
+        }
+
+        if (enabled != null && enabled && effectiveScheduleAt != null && effectiveScheduleAt.isAfter(now)) {
+            throw new IllegalArgumentException("Cannot enable announcement before its schedule time");
+        }
+        if (enabled != null && enabled && effectiveExpiresAt != null && !effectiveExpiresAt.isAfter(now)) {
+            throw new IllegalArgumentException("Cannot enable announcement that is already expired");
+        }
+
+        boolean shouldAutoRecomputeEnabled = enabled == null && (scheduleAt != null || expiresAt != null);
+        Boolean effectiveEnabled = enabled;
+        if (shouldAutoRecomputeEnabled) {
+            boolean withinScheduleWindow = effectiveScheduleAt == null || !effectiveScheduleAt.isAfter(now);
+            boolean notExpired = effectiveExpiresAt == null || effectiveExpiresAt.isAfter(now);
+            effectiveEnabled = withinScheduleWindow && notExpired;
+        }
+
+        boolean shouldRecomputeReminders = scheduleAt != null || expiresAt != null || recurrenceMinutes != null || effectiveEnabled != null;
+
+        for (Notification notification : campaignNotifications) {
+            if (normalizedTitle != null) {
+                notification.setTitle(normalizedTitle);
+            }
+            if (normalizedMessage != null) {
+                notification.setMessage(normalizedMessage);
+            }
+            if (scheduleAt != null) {
+                notification.setScheduledAt(scheduleAt);
+            }
+            if (expiresAt != null) {
+                notification.setExpiresAt(expiresAt);
+            }
+            if (recurrenceMinutes != null) {
+                notification.setRecurrenceMinutes(normalizeRecurrenceForUpdate(recurrenceMinutes));
+            }
+            if (effectiveEnabled != null) {
+                notification.setEnabled(effectiveEnabled);
+            }
+            if (shouldRecomputeReminders) {
+                notification.setNextReminderAt(recomputeNextReminderAt(notification, now));
+                if (notification.getRecurrenceMinutes() == null) {
+                    notification.setLastReminderAt(null);
+                }
+            }
+        }
+
+        notificationRepository.saveAll(campaignNotifications);
+        return toAdminHistoryDTO(campaignId, campaignNotifications);
+    }
+
+    private List<Notification> findCreatorCampaignNotifications(Long creatorUserId, String campaignId) {
+        List<Notification> campaignNotifications;
+        if (campaignId.startsWith("legacy-")) {
+            long legacyId = parseLegacyId(campaignId);
+            Notification legacyNotification = notificationRepository.findById(legacyId)
+                    .orElseThrow(() -> new EntityNotFoundException("Notification campaign not found: " + campaignId));
+            campaignNotifications = new ArrayList<>();
+            campaignNotifications.add(legacyNotification);
+        } else {
+            campaignNotifications = notificationRepository.findByCampaignIdOrderByCreatedAtDesc(campaignId);
+        }
+
+        if (campaignNotifications.isEmpty()) {
+            throw new EntityNotFoundException("Notification campaign not found: " + campaignId);
+        }
+
+        Long campaignCreatorUserId = campaignNotifications.get(0).getCreatorUserId();
+        if (campaignCreatorUserId == null || !campaignCreatorUserId.equals(creatorUserId)) {
+            throw new SecurityException("You can only manage announcements you created");
+        }
+
+        return campaignNotifications;
     }
 
     private void consolidateLegacyBroadcastRows() {
@@ -651,18 +1005,21 @@ public class NotificationService {
     }
 
     private List<NotificationDTO> getVisibleNotificationsForUser(Long userId, boolean unreadOnly) {
+        syncAnnouncementLifecycleStates();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 
+        LocalDateTime now = LocalDateTime.now();
+
         List<Notification> personalNotifications = notificationRepository
-                .findByUserIdAndIsEnabledTrueOrderByCreatedAtDesc(userId);
+            .findVisiblePersonalNotifications(userId, now);
         List<NotificationDTO> personalDtos = personalNotifications.stream()
                 .filter(notification -> !isSharedNotification(notification))
                 .map(NotificationDTO::fromEntity)
                 .filter(dto -> !unreadOnly || !dto.isRead())
                 .toList();
 
-        List<Notification> roleBasedNotifications = getRoleTargetedNotifications(user.getRole());
+        List<Notification> roleBasedNotifications = getRoleTargetedNotifications(user.getRole(), now);
         List<Long> roleBasedIds = roleBasedNotifications.stream().map(Notification::getId).toList();
         if (roleBasedIds.isEmpty()) {
             return personalDtos;
@@ -695,6 +1052,10 @@ public class NotificationService {
                             isRead,
                             notification.isEnabled(),
                             notification.getCampaignId(),
+                            notification.getScheduledAt(),
+                            notification.getExpiresAt(),
+                            notification.getRecurrenceMinutes(),
+                            notification.getNextReminderAt(),
                             notification.getRelatedEntityId(),
                             notification.getRelatedEntityType(),
                             notification.getCreatedAt(),
@@ -712,11 +1073,72 @@ public class NotificationService {
         return merged;
     }
 
-    private List<Notification> getRoleTargetedNotifications(Role role) {
-        return notificationRepository.findRoleTargetedEnabledNotificationsOrderByCreatedAtDesc()
+    private List<Notification> getRoleTargetedNotifications(Role role, LocalDateTime now) {
+        return notificationRepository.findRoleTargetedEnabledNotificationsOrderByCreatedAtDesc(now)
                 .stream()
                 .filter(notification -> isRoleTargeted(notification, role))
                 .toList();
+    }
+
+    private Integer normalizeRecurrenceMinutes(Integer recurrenceMinutes) {
+        if (recurrenceMinutes == null || recurrenceMinutes <= 0) {
+            return null;
+        }
+        return recurrenceMinutes;
+    }
+
+    private Integer normalizeRecurrenceForUpdate(Integer recurrenceMinutes) {
+        if (recurrenceMinutes == null || recurrenceMinutes <= 0) {
+            return null;
+        }
+        return recurrenceMinutes;
+    }
+
+    private LocalDateTime resolveNextReminderAt(boolean startsImmediately,
+                                                LocalDateTime scheduledAt,
+                                                Integer recurrenceMinutes,
+                                                LocalDateTime now) {
+        if (recurrenceMinutes == null || recurrenceMinutes <= 0) {
+            return null;
+        }
+        if (startsImmediately) {
+            return now.plusMinutes(recurrenceMinutes);
+        }
+        LocalDateTime base = scheduledAt != null ? scheduledAt : now;
+        return base.plusMinutes(recurrenceMinutes);
+    }
+
+    private LocalDateTime recomputeNextReminderAt(Notification notification, LocalDateTime now) {
+        Integer recurrenceMinutes = notification.getRecurrenceMinutes();
+        if (recurrenceMinutes == null || recurrenceMinutes <= 0) {
+            return null;
+        }
+
+        LocalDateTime expiresAt = notification.getExpiresAt();
+        if (expiresAt != null && !expiresAt.isAfter(now)) {
+            return null;
+        }
+
+        if (!notification.isEnabled()) {
+            LocalDateTime scheduledAt = notification.getScheduledAt();
+            LocalDateTime base = scheduledAt != null ? scheduledAt : now;
+            LocalDateTime next = base.plusMinutes(recurrenceMinutes);
+            if (expiresAt != null && !expiresAt.isAfter(next)) {
+                return null;
+            }
+            return next;
+        }
+
+        LocalDateTime next = now.plusMinutes(recurrenceMinutes);
+        if (expiresAt != null && !expiresAt.isAfter(next)) {
+            return null;
+        }
+        return next;
+    }
+
+    private void syncAnnouncementLifecycleStates() {
+        activateScheduledAnnouncements();
+        expireAnnouncements();
     }
 
     private boolean isSharedNotification(Notification notification) {
@@ -792,8 +1214,14 @@ public class NotificationService {
             NotificationType type,
             NotificationCategory category,
             boolean isEnabled,
+            Long creatorUserId,
+            String targetRoles,
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
+            LocalDateTime scheduledAt,
+            LocalDateTime expiresAt,
+            Integer recurrenceMinutes,
+            LocalDateTime nextReminderAt,
             int recipientCount,
             long readCount
     ) {}

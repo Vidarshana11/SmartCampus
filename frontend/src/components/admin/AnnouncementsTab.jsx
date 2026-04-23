@@ -8,12 +8,41 @@ const URGENCY_LEVELS = [
   { value: ANNOUNCEMENT_URGENCY.URGENT, label: 'Urgent', color: 'bg-red-100 text-red-800' },
 ]
 
-export default function AnnouncementsTab({ token }) {
-  const [title, setTitle] = useState('')
+const ROLE_OPTIONS_BY_CREATOR = {
+  LECTURER: [
+    { value: 'STUDENT', label: 'Students' },
+  ],
+  MANAGER: [
+    { value: 'STUDENT', label: 'Students' },
+    { value: 'LECTURER', label: 'Lecturers' },
+    { value: 'TECHNICIAN', label: 'Technicians' },
+  ],
+  ADMIN: [
+    { value: 'STUDENT', label: 'Students' },
+    { value: 'LECTURER', label: 'Lecturers' },
+    { value: 'TECHNICIAN', label: 'Technicians' },
+    { value: 'MANAGER', label: 'Managers' },
+    { value: 'ADMIN', label: 'Admins' },
+    { value: 'USER', label: 'Users (Default)' },
+  ],
+}
+
+export default function AnnouncementsTab({
+  token,
+  mode = 'admin',
+  creatorRole = 'ADMIN',
+  heading = 'Create Announcement',
+  description = 'Broadcast messages to campus community',
+}) {
+  const [announcementTitle, setAnnouncementTitle] = useState('')
   const [content, setContent] = useState('')
   const [urgency, setUrgency] = useState(ANNOUNCEMENT_URGENCY.NORMAL)
-  const [recipientType, setRecipientType] = useState('all')
+  const [recipientType, setRecipientType] = useState(mode === 'admin' ? 'all' : 'roles')
   const [selectedRoles, setSelectedRoles] = useState([])
+  const [scheduleAt, setScheduleAt] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
+  const [enableRecurrence, setEnableRecurrence] = useState(false)
+  const [recurrenceMinutes, setRecurrenceMinutes] = useState('1440')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
@@ -25,14 +54,43 @@ export default function AnnouncementsTab({ token }) {
   }
 
   const handleSendAnnouncement = async () => {
-    if (!title.trim() || !content.trim()) {
+    if (!announcementTitle.trim() || !content.trim()) {
       setError('Title and content are required')
       return
     }
 
-    if (recipientType === 'roles' && selectedRoles.length === 0) {
+    if (mode === 'admin' && recipientType === 'roles' && selectedRoles.length === 0) {
       setError('Please select at least one role')
       return
+    }
+
+    const allowedRoles = ROLE_OPTIONS_BY_CREATOR[creatorRole] || []
+    if (mode === 'role-based' && selectedRoles.length === 0) {
+      setError('Please select at least one target role')
+      return
+    }
+
+    if (mode === 'role-based') {
+      const invalidRoles = selectedRoles.filter(
+        (role) => !allowedRoles.some((option) => option.value === role)
+      )
+      if (invalidRoles.length > 0) {
+        setError('One or more selected roles are not allowed for your account')
+        return
+      }
+    }
+
+    if (scheduleAt && expiresAt && new Date(expiresAt) <= new Date(scheduleAt)) {
+      setError('Expiry time must be later than the scheduled time')
+      return
+    }
+
+    if (enableRecurrence) {
+      const parsedRecurrence = Number(recurrenceMinutes)
+      if (!Number.isFinite(parsedRecurrence) || parsedRecurrence <= 0) {
+        setError('Recurring reminder interval must be a positive number of minutes')
+        return
+      }
     }
 
     try {
@@ -41,21 +99,28 @@ export default function AnnouncementsTab({ token }) {
       setSuccess(null)
 
       const payload = {
-        title: title.trim(),
+        title: announcementTitle.trim(),
         message: content.trim(),
         urgency,
-        targetRoles: recipientType === 'roles' ? selectedRoles : [],
+        targetRoles: mode === 'admin' ? (recipientType === 'roles' ? selectedRoles : []) : selectedRoles,
+        scheduleAt: scheduleAt || null,
+        expiresAt: expiresAt || null,
+        recurrenceMinutes: enableRecurrence ? Number(recurrenceMinutes) : null,
       }
 
       const response = await createAnnouncement(token, payload)
       const recipientCount = Number(response?.recipientCount ?? 0)
 
       setSuccess(`Announcement created and sent to ${recipientCount} user(s)`)
-      setTitle('')
+      setAnnouncementTitle('')
       setContent('')
       setUrgency(ANNOUNCEMENT_URGENCY.NORMAL)
-      setRecipientType('all')
+      setRecipientType(mode === 'admin' ? 'all' : 'roles')
       setSelectedRoles([])
+      setScheduleAt('')
+      setExpiresAt('')
+      setEnableRecurrence(false)
+      setRecurrenceMinutes('1440')
 
       setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
@@ -89,8 +154,8 @@ export default function AnnouncementsTab({ token }) {
       {/* Create Announcement Form */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-1">Create Announcement</h2>
-          <p className="text-gray-600 text-sm">Broadcast messages to campus community</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-1">{heading}</h2>
+          <p className="text-gray-600 text-sm">{description}</p>
         </div>
 
         {/* Title */}
@@ -98,8 +163,8 @@ export default function AnnouncementsTab({ token }) {
           <label className="block text-sm font-semibold text-gray-700 mb-2">Title *</label>
           <input
             type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+              value={announcementTitle}
+              onChange={(e) => setAnnouncementTitle(e.target.value)}
             placeholder="Enter announcement title..."
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900"
           />
@@ -137,98 +202,128 @@ export default function AnnouncementsTab({ token }) {
           </div>
         </div>
 
-        {/* Recipient Type */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-3">Send To</label>
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
-              <input
-                type="radio"
-                name="recipient"
-                value="all"
-                checked={recipientType === 'all'}
-                onChange={(e) => setRecipientType(e.target.value)}
-                className="w-4 h-4 accent-blue-600"
-              />
-              <div>
-                <p className="font-medium text-gray-900">All Users</p>
-                <p className="text-xs text-gray-600">Send to entire campus community</p>
-              </div>
-            </label>
+        {mode === 'admin' ? (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">Send To</label>
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
+                <input
+                  type="radio"
+                  name="recipient"
+                  value="all"
+                  checked={recipientType === 'all'}
+                  onChange={(e) => setRecipientType(e.target.value)}
+                  className="w-4 h-4 accent-blue-600"
+                />
+                <div>
+                  <p className="font-medium text-gray-900">All Users</p>
+                  <p className="text-xs text-gray-600">Send to entire campus community</p>
+                </div>
+              </label>
 
-            <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
-              <input
-                type="radio"
-                name="recipient"
-                value="roles"
-                checked={recipientType === 'roles'}
-                onChange={(e) => setRecipientType(e.target.value)}
-                className="w-4 h-4 accent-blue-600"
-              />
-              <div>
-                <p className="font-medium text-gray-900">Specific Roles</p>
-                <p className="text-xs text-gray-600">Send to selected user roles only</p>
+              <label className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
+                <input
+                  type="radio"
+                  name="recipient"
+                  value="roles"
+                  checked={recipientType === 'roles'}
+                  onChange={(e) => setRecipientType(e.target.value)}
+                  className="w-4 h-4 accent-blue-600"
+                />
+                <div>
+                  <p className="font-medium text-gray-900">Specific Roles</p>
+                  <p className="text-xs text-gray-600">Send to selected user roles only</p>
+                </div>
+              </label>
+            </div>
+
+            {/* Role Selection */}
+            {recipientType === 'roles' && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-3">
+                {ROLE_OPTIONS_BY_CREATOR.ADMIN.map((role) => (
+                  <label key={role.value} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedRoles.includes(role.value)}
+                      onChange={() => handleRoleToggle(role.value)}
+                      className="w-4 h-4 accent-blue-600"
+                    />
+                    <span className="text-gray-900 font-medium">{role.label}</span>
+                  </label>
+                ))}
               </div>
-            </label>
+            )}
+          </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">Target Audience</label>
+            <div className="space-y-3">
+              <div className="mt-1 p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-3">
+                {(ROLE_OPTIONS_BY_CREATOR[creatorRole] || []).map((role) => (
+                  <label key={role.value} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedRoles.includes(role.value)}
+                      onChange={() => handleRoleToggle(role.value)}
+                      className="w-4 h-4 accent-blue-600"
+                    />
+                    <span className="text-gray-900 font-medium">{role.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Scheduling Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Schedule Start (Optional)</label>
+            <input
+              type="datetime-local"
+              value={scheduleAt}
+              onChange={(e) => setScheduleAt(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900"
+            />
+            <p className="text-xs text-gray-500 mt-1">Leave empty to publish immediately.</p>
           </div>
 
-          {/* Role Selection */}
-          {recipientType === 'roles' && (
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedRoles.includes('STUDENT')}
-                  onChange={() => handleRoleToggle('STUDENT')}
-                  className="w-4 h-4 accent-blue-600"
-                />
-                <span className="text-gray-900 font-medium">Students</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedRoles.includes('LECTURER')}
-                  onChange={() => handleRoleToggle('LECTURER')}
-                  className="w-4 h-4 accent-blue-600"
-                />
-                <span className="text-gray-900 font-medium">Lecturers</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedRoles.includes('TECHNICIAN')}
-                  onChange={() => handleRoleToggle('TECHNICIAN')}
-                  className="w-4 h-4 accent-blue-600"
-                />
-                <span className="text-gray-900 font-medium">Technicians</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedRoles.includes('MANAGER')}
-                  onChange={() => handleRoleToggle('MANAGER')}
-                  className="w-4 h-4 accent-blue-600"
-                />
-                <span className="text-gray-900 font-medium">Managers</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedRoles.includes('ADMIN')}
-                  onChange={() => handleRoleToggle('ADMIN')}
-                  className="w-4 h-4 accent-blue-600"
-                />
-                <span className="text-gray-900 font-medium">Admins</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedRoles.includes('USER')}
-                  onChange={() => handleRoleToggle('USER')}
-                  className="w-4 h-4 accent-blue-600"
-                />
-                <span className="text-gray-900 font-medium">Users (Default)</span>
-              </label>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Expiry Time (Optional)</label>
+            <input
+              type="datetime-local"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900"
+            />
+            <p className="text-xs text-gray-500 mt-1">Announcement auto-expires after this time.</p>
+          </div>
+        </div>
+
+        {/* Recurring Reminders */}
+        <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={enableRecurrence}
+              onChange={(e) => setEnableRecurrence(e.target.checked)}
+              className="w-4 h-4 accent-blue-600"
+            />
+            <span className="text-sm font-semibold text-gray-800">Enable Recurring Reminders</span>
+          </label>
+
+          {enableRecurrence && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Reminder Interval (Minutes)</label>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={recurrenceMinutes}
+                onChange={(e) => setRecurrenceMinutes(e.target.value)}
+                className="w-full md:w-60 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900"
+              />
+              <p className="text-xs text-gray-500 mt-1">Example: 60 = hourly, 1440 = daily.</p>
             </div>
           )}
         </div>
@@ -236,7 +331,13 @@ export default function AnnouncementsTab({ token }) {
         {/* Send Button */}
         <button
           onClick={handleSendAnnouncement}
-          disabled={loading || !title.trim() || !content.trim() || (recipientType === 'roles' && selectedRoles.length === 0)}
+          disabled={
+            loading
+            || !announcementTitle.trim()
+            || !content.trim()
+            || (mode === 'admin' && recipientType === 'roles' && selectedRoles.length === 0)
+            || (mode === 'role-based' && selectedRoles.length === 0)
+          }
           className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (

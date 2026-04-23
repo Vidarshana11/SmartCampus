@@ -11,6 +11,7 @@ import OAuthSuccess from './pages/OAuthSuccess'
 import RoleSelection from './pages/RoleSelection'
 import Dashboard from './pages/Dashboard'
 import Announcements from './pages/Announcements'
+import CreateAnnouncements from './pages/CreateAnnouncements'
 import AdminPanel from './pages/AdminPanel'
 import RoleManagement from './pages/RoleManagement'
 import AccountManagement from './pages/AccountManagement'
@@ -85,6 +86,15 @@ export default function AppRouter() {
             element={
               <ProtectedShell>
                 <Announcements />
+              </ProtectedShell>
+            }
+          />
+
+          <Route
+            path="/announcements/create"
+            element={
+              <ProtectedShell roles={['LECTURER', 'MANAGER']}>
+                <CreateAnnouncements />
               </ProtectedShell>
             }
           />

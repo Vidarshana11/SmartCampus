@@ -206,6 +206,9 @@ export const createAnnouncement = async (token, {
   message,
   urgency = ANNOUNCEMENT_URGENCY.NORMAL,
   targetRoles = [],
+  scheduleAt = null,
+  expiresAt = null,
+  recurrenceMinutes = null,
 }) => {
   const urgencyType = mapUrgencyToNotificationType(urgency)
   const res = await apiClient.post('/api/notifications/admin/announcements', {
@@ -214,10 +217,24 @@ export const createAnnouncement = async (token, {
     urgency,
     type: urgencyType,
     targetRoles,
+    scheduleAt,
+    expiresAt,
+    recurrenceMinutes,
   }, {
     headers: getAuthHeader(token),
   })
   return res.data
+}
+
+/**
+ * Get announcements created by the current user.
+ * GET /api/notifications/announcements/my-history
+ */
+export const getMyAnnouncementHistory = async (token) => {
+  const res = await apiClient.get('/api/notifications/announcements/my-history', {
+    headers: getAuthHeader(token),
+  })
+  return res.data.notifications || []
 }
 
 /**
@@ -238,15 +255,46 @@ export const getAdminNotificationHistory = async (token) => {
 export const updateAdminNotificationHistory = async (
   token,
   campaignId,
-  { title, message, enabled }
+  { title, message, enabled, scheduleAt, expiresAt, recurrenceMinutes }
 ) => {
   const payload = {}
   if (typeof title === 'string') payload.title = title
   if (typeof message === 'string') payload.message = message
   if (typeof enabled === 'boolean') payload.enabled = enabled
+  if (typeof scheduleAt === 'string') payload.scheduleAt = scheduleAt
+  if (typeof expiresAt === 'string') payload.expiresAt = expiresAt
+  if (typeof recurrenceMinutes === 'number' && Number.isFinite(recurrenceMinutes)) {
+    payload.recurrenceMinutes = recurrenceMinutes
+  }
 
   const encodedCampaignId = encodeURIComponent(campaignId)
   const res = await apiClient.put(`/api/notifications/admin/history/${encodedCampaignId}`, payload, {
+    headers: getAuthHeader(token),
+  })
+  return res.data
+}
+
+/**
+ * Update an announcement created by the current user.
+ * PUT /api/notifications/announcements/my-history/{campaignId}
+ */
+export const updateMyAnnouncementHistory = async (
+  token,
+  campaignId,
+  { title, message, enabled, scheduleAt, expiresAt, recurrenceMinutes }
+) => {
+  const payload = {}
+  if (typeof title === 'string') payload.title = title
+  if (typeof message === 'string') payload.message = message
+  if (typeof enabled === 'boolean') payload.enabled = enabled
+  if (typeof scheduleAt === 'string') payload.scheduleAt = scheduleAt
+  if (typeof expiresAt === 'string') payload.expiresAt = expiresAt
+  if (typeof recurrenceMinutes === 'number' && Number.isFinite(recurrenceMinutes)) {
+    payload.recurrenceMinutes = recurrenceMinutes
+  }
+
+  const encodedCampaignId = encodeURIComponent(campaignId)
+  const res = await apiClient.put(`/api/notifications/announcements/my-history/${encodedCampaignId}`, payload, {
     headers: getAuthHeader(token),
   })
   return res.data
@@ -259,6 +307,18 @@ export const updateAdminNotificationHistory = async (
 export const deleteAdminNotificationHistory = async (token, campaignId) => {
   const encodedCampaignId = encodeURIComponent(campaignId)
   const res = await apiClient.delete(`/api/notifications/admin/history/${encodedCampaignId}`, {
+    headers: getAuthHeader(token),
+  })
+  return res.data
+}
+
+/**
+ * Delete an announcement created by the current user.
+ * DELETE /api/notifications/announcements/my-history/{campaignId}
+ */
+export const deleteMyAnnouncementHistory = async (token, campaignId) => {
+  const encodedCampaignId = encodeURIComponent(campaignId)
+  const res = await apiClient.delete(`/api/notifications/announcements/my-history/${encodedCampaignId}`, {
     headers: getAuthHeader(token),
   })
   return res.data

@@ -25,6 +25,18 @@ export default function Navbar() {
 
   const isAdmin = user?.role === 'ADMIN'
   const userName = user?.name ?? 'Guest'
+  const getPortalLabel = () => {
+    switch (user?.role) {
+      case 'LECTURER':
+        return 'Lecturer Portal'
+      case 'MANAGER':
+        return 'Manager Portal'
+      case 'ADMIN':
+        return 'Admin Portal'
+      default:
+        return 'Student Portal'
+    }
+  }
 
   const handleLogout = () => {
     logout()
@@ -53,7 +65,7 @@ export default function Navbar() {
             <img src={campusLogo} alt="National University of Smart Technologies logo" className="w-10 h-10 rounded-lg object-cover border border-white/20" />
             <div className="hidden sm:block">
               <div className="text-white font-bold text-lg leading-tight">{BRAND_SHORT_NAME}</div>
-              <div className="text-white/60 text-xs">Student Portal</div>
+              <div className="text-white/60 text-xs">{getPortalLabel()}</div>
             </div>
           </Link>
 

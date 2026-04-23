@@ -16,12 +16,24 @@ import java.util.List;
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    List<Notification> findByUserIdAndIsEnabledTrueOrderByCreatedAtDesc(Long userId);
+        @Query("SELECT n FROM Notification n " +
+            "WHERE n.user.id = :userId AND n.isEnabled = true " +
+            "AND (n.scheduledAt IS NULL OR n.scheduledAt <= :now) " +
+            "AND (n.expiresAt IS NULL OR n.expiresAt > :now) " +
+            "ORDER BY n.createdAt DESC")
+        List<Notification> findVisiblePersonalNotifications(@Param("userId") Long userId, @Param("now") LocalDateTime now);
 
     // For user account deletion - find by User entity
     List<Notification> findByUser(User user);
 
-    Page<Notification> findByUserIdAndIsEnabledTrueOrderByCreatedAtDesc(Long userId, Pageable pageable);
+        @Query("SELECT n FROM Notification n " +
+            "WHERE n.user.id = :userId AND n.isEnabled = true " +
+            "AND (n.scheduledAt IS NULL OR n.scheduledAt <= :now) " +
+            "AND (n.expiresAt IS NULL OR n.expiresAt > :now) " +
+            "ORDER BY n.createdAt DESC")
+        Page<Notification> findVisiblePersonalNotifications(@Param("userId") Long userId,
+                                @Param("now") LocalDateTime now,
+                                Pageable pageable);
 
     List<Notification> findByUserIdAndIsReadFalseAndIsEnabledTrueOrderByCreatedAtDesc(Long userId);
 
@@ -43,12 +55,35 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     List<Notification> findByCampaignIdOrderByCreatedAtDesc(String campaignId);
 
+    List<Notification> findByCreatorUserIdOrderByCreatedAtDesc(Long creatorUserId);
+
     List<Notification> findByUserIsNullAndIsEnabledTrueOrderByCreatedAtDesc();
 
     @Query("SELECT n FROM Notification n " +
             "WHERE n.isEnabled = true AND n.targetRoles IS NOT NULL AND n.targetRoles <> '' " +
+            "AND (n.scheduledAt IS NULL OR n.scheduledAt <= :now) " +
+            "AND (n.expiresAt IS NULL OR n.expiresAt > :now) " +
             "ORDER BY n.createdAt DESC")
-    List<Notification> findRoleTargetedEnabledNotificationsOrderByCreatedAtDesc();
+        List<Notification> findRoleTargetedEnabledNotificationsOrderByCreatedAtDesc(@Param("now") LocalDateTime now);
+
+        @Query("SELECT n FROM Notification n " +
+            "WHERE n.isEnabled = false " +
+            "AND n.targetRoles IS NOT NULL AND n.targetRoles <> '' " +
+            "AND n.scheduledAt IS NOT NULL AND n.scheduledAt <= :now " +
+            "AND (n.expiresAt IS NULL OR n.expiresAt > :now)")
+        List<Notification> findScheduledAnnouncementsToActivate(@Param("now") LocalDateTime now);
+
+        @Query("SELECT n FROM Notification n " +
+            "WHERE n.isEnabled = true AND n.expiresAt IS NOT NULL AND n.expiresAt <= :now")
+        List<Notification> findAnnouncementsToExpire(@Param("now") LocalDateTime now);
+
+        @Query("SELECT n FROM Notification n " +
+            "WHERE n.isEnabled = true " +
+            "AND n.targetRoles IS NOT NULL AND n.targetRoles <> '' " +
+            "AND n.recurrenceMinutes IS NOT NULL AND n.recurrenceMinutes > 0 " +
+            "AND n.nextReminderAt IS NOT NULL AND n.nextReminderAt <= :now " +
+            "AND (n.expiresAt IS NULL OR n.expiresAt > :now)")
+        List<Notification> findRecurringAnnouncementsDue(@Param("now") LocalDateTime now);
 
     List<Notification> findByIdIn(Collection<Long> ids);
 }
