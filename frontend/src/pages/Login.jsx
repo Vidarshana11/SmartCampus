@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { BRAND_FULL_NAME } from '../constants/branding'
 import { resendVerificationEmail } from '../services/authService'
-import { FaGraduationCap, FaEye, FaEyeSlash, FaGoogle, FaGithub, FaEnvelope, FaLock } from 'react-icons/fa'
+import { FaEye, FaEyeSlash, FaGoogle, FaEnvelope, FaLock } from 'react-icons/fa'
 
 export default function Login() {
   const { login } = useAuth()
@@ -224,11 +224,11 @@ export default function Login() {
                     Google
                   </a>
                   <a
-                    href="/oauth2/authorization/github"
+                    href="http://localhost:8080/oauth2/authorization/google"
                     className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
                   >
-                    <FaGithub className="w-5 h-5" />
-                    GitHub
+                    <img src="/universityImage.png" alt="NUST" className="w-5 h-5 rounded-sm object-contain" />
+                    NUST ID
                   </a>
                 </div>
               </div>
