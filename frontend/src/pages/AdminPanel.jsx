@@ -109,7 +109,9 @@ export default function AdminPanel() {
         setStats(adminStats)
       } catch (err) {
         console.error('Failed to fetch admin stats:', err)
-        setError('Failed to load dashboard statistics')
+        const serverMsg = err?.response?.data?.error || err?.response?.data?.message || err?.message
+        const status = err?.response?.status
+        setError(status ? `Failed to load dashboard statistics (${status}): ${serverMsg}` : `Failed to load dashboard statistics: ${serverMsg}`)
       } finally {
         setLoading(false)
       }

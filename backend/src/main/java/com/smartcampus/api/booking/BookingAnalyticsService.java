@@ -69,7 +69,13 @@ public class BookingAnalyticsService {
 
         private boolean hasValidResource(Booking booking) {
                 try {
-                        return booking.getResource() != null && booking.getResource().getId() != null;
+                        if (booking.getResource() == null || booking.getResource().getId() == null) {
+                                return false;
+                        }
+
+                        // Force-load the related resource to ensure the reference is resolvable.
+                        booking.getResource().getName();
+                        return true;
                 } catch (RuntimeException ex) {
                         log.warn("Skipping booking {} in analytics due to missing resource relation", booking.getId());
                         return false;
