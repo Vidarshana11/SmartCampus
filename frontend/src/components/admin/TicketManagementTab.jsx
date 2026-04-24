@@ -48,10 +48,14 @@ export default function TicketManagementTab({ onSelectTicket }) {
   }, [fetchTickets])
 
   const filteredTickets = tickets.filter(ticket => {
+    const description = ticket.description || ''
+    const resourceName = ticket.resourceName || ''
+    const createdByName = ticket.createdByName || ''
+
     const matchesSearch = 
-      ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.resourceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.createdByName.toLowerCase().includes(searchTerm.toLowerCase())
+      description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resourceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      createdByName.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = !statusFilter || ticket.status === statusFilter
     
@@ -73,7 +77,7 @@ export default function TicketManagementTab({ onSelectTicket }) {
     {
       key: 'resourceName',
       label: 'Resource',
-      render: (name) => <span className="text-gray-600 italic">{name}</span>
+      render: (name) => <span className="text-gray-600 italic">{name || 'Unknown Resource'}</span>
     },
     {
       key: 'priority',
@@ -95,6 +99,7 @@ export default function TicketManagementTab({ onSelectTicket }) {
     {
       key: 'createdByName',
       label: 'Reported by',
+      render: (name) => name || 'Unknown User'
     },
     {
       key: 'createdAt',

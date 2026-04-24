@@ -1,6 +1,7 @@
 package com.smartcampus.api.booking;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookingAnalyticsService {
@@ -17,13 +19,16 @@ public class BookingAnalyticsService {
     @Transactional(readOnly = true)
     public BookingAnalyticsDTO getAnalytics() {
         List<Booking> allBookings = bookingRepository.findAll();
+        List<Booking> validResourceBookings = allBookings.stream()
+                .filter(this::hasValidResource)
+                .toList();
 
         // Count by status
         Map<BookingStatus, Long> statusCounts = allBookings.stream()
                 .collect(Collectors.groupingBy(Booking::getStatus, Collectors.counting()));
 
         // Top resources by booking count
-        List<BookingAnalyticsDTO.ResourceBookingCount> topResources = allBookings.stream()
+        List<BookingAnalyticsDTO.ResourceBookingCount> topResources = validResourceBookings.stream()
                 .collect(Collectors.groupingBy(
                         b -> b.getResource().getId(),
                         Collectors.counting()
@@ -32,7 +37,7 @@ public class BookingAnalyticsService {
                 .sorted(Map.Entry.<Long, Long>comparingByValue().reversed())
                 .limit(5)
                 .map(e -> {
-                    Booking sample = allBookings.stream()
+                    Booking sample = validResourceBookings.stream()
                             .filter(b -> b.getResource().getId().equals(e.getKey()))
                             .findFirst().orElseThrow();
                     return BookingAnalyticsDTO.ResourceBookingCount.builder()
@@ -45,6 +50,7 @@ public class BookingAnalyticsService {
 
         // Peak booking hours
         Map<Integer, Long> bookingsByHour = allBookings.stream()
+                .filter(b -> b.getStartTime() != null)
                 .collect(Collectors.groupingBy(
                         b -> b.getStartTime().getHour(),
                         Collectors.counting()
@@ -60,4 +66,13 @@ public class BookingAnalyticsService {
                 .bookingsByHour(bookingsByHour)
                 .build();
     }
+
+        private boolean hasValidResource(Booking booking) {
+                try {
+                        return booking.getResource() != null && booking.getResource().getId() != null;
+                } catch (RuntimeException ex) {
+                        log.warn("Skipping booking {} in analytics due to missing resource relation", booking.getId());
+                        return false;
+                }
+        }
 }

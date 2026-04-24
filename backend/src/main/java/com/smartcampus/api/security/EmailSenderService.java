@@ -59,6 +59,7 @@ public class EmailSenderService {
         String htmlBody = buildOtpHtmlEmail(
             displayName,
             "Email Verification Code",
+            "One-Time Verification Code",
             "Use this one-time code to complete your " + UNIVERSITY_NAME + " account setup.",
             verificationCode,
             "This code will expire in 24 hours.",
@@ -92,10 +93,36 @@ public class EmailSenderService {
         String htmlBody = buildOtpHtmlEmail(
             displayName,
             "Password Reset Code",
+            "One-Time Verification Code",
             "Use this one-time code to reset your " + UNIVERSITY_NAME + " password securely.",
             resetCode,
             "This code will expire in 30 minutes.",
             "If you did not request a password reset, no further action is needed."
+        );
+
+        sendHtml(toEmail, subject, body, htmlBody);
+    }
+
+    public void sendAdminCreatedAccount(String toEmail, String fullName, String password, String role) {
+        String displayName = (fullName == null || fullName.isBlank()) ? "there" : fullName;
+        String subject = "Welcome to " + UNIVERSITY_NAME;
+        String body = "Welcome to " + UNIVERSITY_NAME + "\n\n"
+            + "Hello " + displayName + ",\n\n"
+            + "An account has been created for you. Use the temporary password below to sign in and set a new password.\n\n"
+            + "Password: " + password + "\n"
+            + "Role: " + role + "\n\n"
+            + "Please change your password after signing in.\n\n"
+            + UNIVERSITY_TEAM_SIGNATURE;
+
+        // Use the same OTP-style HTML template so the password is highlighted like verification codes
+        String htmlBody = buildOtpHtmlEmail(
+            displayName,
+            "Welcome to " + UNIVERSITY_NAME,
+            "Your Password",
+            "An account has been created for you. Use the temporary password below to sign in and set a new password.",
+            password,
+            "Role: " + role,
+            "Please change your password after signing in."
         );
 
         sendHtml(toEmail, subject, body, htmlBody);
@@ -143,9 +170,25 @@ public class EmailSenderService {
                 }
         }
 
+        
+
+        private String escapeHtml(String value) {
+                if (value == null) {
+                        return "";
+                }
+
+                return value
+                                .replace("&", "&amp;")
+                                .replace("<", "&lt;")
+                                .replace(">", "&gt;")
+                                .replace("\"", "&quot;")
+                                .replace("'", "&#39;");
+        }
+
         private String buildOtpHtmlEmail(
                         String displayName,
                         String title,
+                        String codeLabel,
                         String intro,
                         String code,
                         String expiryLine,
@@ -157,6 +200,7 @@ public class EmailSenderService {
                 String safeCode = escapeHtml(code);
                 String safeExpiryLine = escapeHtml(expiryLine);
                 String safeSafetyNote = escapeHtml(safetyNote);
+                String safeCodeLabel = escapeHtml(codeLabel);
 
                 return """
                                 <!doctype html>
@@ -185,7 +229,7 @@ public class EmailSenderService {
                                                             <p style="margin:0 0 20px 0;font-size:15px;color:#475569;line-height:1.6;">{{INTRO}}</p>
 
                                                             <div style="margin:0 auto 20px auto;max-width:320px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px 18px;text-align:center;">
-                                                                <p style="margin:0 0 8px 0;font-size:12px;color:#1d4ed8;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">One-Time Verification Code</p>
+                                                                <p style="margin:0 0 8px 0;font-size:12px;color:#1d4ed8;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">{{CODE_LABEL}}</p>
                                                                 <p style="margin:0;font-size:34px;font-weight:800;letter-spacing:0.28em;color:#0b3f6e;">{{CODE}}</p>
                                                             </div>
 
@@ -208,22 +252,10 @@ public class EmailSenderService {
                                 .replace("{{NAME}}", safeDisplayName)
                                 .replace("{{INTRO}}", safeIntro)
                                 .replace("{{CODE}}", safeCode)
+                                .replace("{{CODE_LABEL}}", safeCodeLabel)
                                 .replace("{{EXPIRY}}", safeExpiryLine)
                                 .replace("{{SAFETY_NOTE}}", safeSafetyNote)
                                 .replace("{{LOGO_CID}}", UNIVERSITY_LOGO_CID);
-        }
-
-        private String escapeHtml(String value) {
-                if (value == null) {
-                        return "";
-                }
-
-                return value
-                                .replace("&", "&amp;")
-                                .replace("<", "&lt;")
-                                .replace(">", "&gt;")
-                                .replace("\"", "&quot;")
-                                .replace("'", "&#39;");
         }
 
     private boolean isSmtpConfigured() {

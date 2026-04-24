@@ -43,6 +43,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetService passwordResetService;
     private final EmailVerificationService emailVerificationService;
+    private final EmailSenderService emailSenderService;
 
     public AuthController(
             UserRepository userRepository,
@@ -50,12 +51,15 @@ public class AuthController {
             PasswordEncoder passwordEncoder,
             PasswordResetService passwordResetService,
             EmailVerificationService emailVerificationService
+            ,
+            EmailSenderService emailSenderService
     ) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.passwordResetService = passwordResetService;
         this.emailVerificationService = emailVerificationService;
+        this.emailSenderService = emailSenderService;
     }
 
     // ===== DTOs =====
@@ -284,13 +288,11 @@ public class AuthController {
 
         userRepository.save(user);
 
-        // Build response
+        // Send admin-created account welcome email with temporary password and role
+        emailSenderService.sendAdminCreatedAccount(user.getEmail(), user.getName(), request.password(), assignedRole.name());
+
         Map<String, Object> response = new HashMap<>();
-        if (assignedRole == Role.ADMIN) {
-            response.put("message", "Admin account created successfully. Email is pre-verified.");
-        } else {
-            response.put("message", "User created successfully. They will need to verify their email.");
-        }
+        response.put("message", "User created successfully. Email is pre-verified.");
         response.put("user", buildUserMap(user));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
