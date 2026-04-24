@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -294,10 +295,15 @@ public class TicketService {
                 .map(TicketAttachment::getFileUrl)
                 .collect(Collectors.toList());
 
+        Long resourceId = safeGet(() -> ticket.getResource().getId());
+        String resourceName = safeGet(() -> ticket.getResource().getName());
+        Long createdById = safeGet(() -> ticket.getCreatedBy().getId());
+        String createdByName = safeGet(() -> ticket.getCreatedBy().getName());
+
         return TicketDTO.builder()
                 .id(ticket.getId())
-                .resourceId(ticket.getResource().getId())
-                .resourceName(ticket.getResource().getName())
+            .resourceId(resourceId)
+            .resourceName(resourceName != null ? resourceName : "Unknown Resource")
                 .category(ticket.getCategory())
                 .description(ticket.getDescription())
                 .priority(ticket.getPriority())
@@ -307,11 +313,19 @@ public class TicketService {
                 .assignedToName(ticket.getAssignedTo() != null ? ticket.getAssignedTo().getName() : null)
                 .rejectionReason(ticket.getRejectionReason())
                 .resolutionNotes(ticket.getResolutionNotes())
-                .createdById(ticket.getCreatedBy().getId())
-                .createdByName(ticket.getCreatedBy().getName())
+                .createdById(createdById)
+                .createdByName(createdByName != null ? createdByName : "Unknown User")
                 .attachmentUrls(attachmentUrls)
                 .createdAt(ticket.getCreatedAt())
                 .updatedAt(ticket.getUpdatedAt())
                 .build();
+    }
+
+    private <T> T safeGet(Supplier<T> resolver) {
+        try {
+            return resolver.get();
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 }

@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { getImageUrl } from '../api/apiClient'
 import { BRAND_FULL_NAME, BRAND_SHORT_NAME } from '../constants/branding'
-import Navbar from './Navbar'
 import NotificationBell from './notifications/NotificationBell'
 import {
   FaHome,
@@ -15,15 +14,18 @@ import {
   FaBuilding,
   FaClipboardList,
   FaBullhorn,
-  FaSearch
+  FaSearch,
+  FaChevronDown
 } from 'react-icons/fa'
 
 export default function AppShell({ children }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [announcementSearchTerm, setAnnouncementSearchTerm] = useState('')
+  const userMenuRef = useRef(null)
 
   const isAdmin = user?.role === 'ADMIN'
   const canCreateAnnouncements = user?.role === 'LECTURER' || user?.role === 'MANAGER'
@@ -46,9 +48,23 @@ export default function AppShell({ children }) {
     return () => clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   const handleLogout = () => {
+    setUserMenuOpen(false)
     logout()
-    navigate('/', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   const handleAnnouncementSearch = (event) => {
@@ -133,20 +149,56 @@ export default function AppShell({ children }) {
               <NotificationBell />
 
               {/* User Profile */}
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:text-right">
-                  <div className="text-white text-sm font-medium">{userName}</div>
-                  <div className="text-white/60 text-xs">{user?.role || 'Student'}</div>
-                </div>
-                {user?.profilePictureUrl ? (
-                  <img
-                    src={getImageUrl(user.profilePictureUrl)}
-                    alt={userName}
-                    className="w-9 h-9 rounded-full object-cover shadow-md border-2 border-[#c9a227]"
-                  />
-                ) : (
-                  <div className="w-9 h-9 bg-gradient-to-br from-[#c9a227] to-[#ffd700] rounded-full flex items-center justify-center text-[#003366] font-bold text-sm shadow-md">
-                    {userName.charAt(0).toUpperCase()}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen((prev) => !prev)}
+                  className="flex items-center gap-3 rounded-lg p-1.5 hover:bg-white/10 transition-colors"
+                  aria-haspopup="menu"
+                  aria-expanded={userMenuOpen}
+                >
+                  <div className="hidden sm:text-right">
+                    <div className="text-white text-sm font-medium">{userName}</div>
+                    <div className="text-white/60 text-xs">{user?.role || 'Student'}</div>
+                  </div>
+                  {user?.profilePictureUrl ? (
+                    <img
+                      src={getImageUrl(user.profilePictureUrl)}
+                      alt={userName}
+                      className="w-9 h-9 rounded-full object-cover shadow-md border-2 border-[#c9a227]"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 bg-gradient-to-br from-[#c9a227] to-[#ffd700] rounded-full flex items-center justify-center text-[#003366] font-bold text-sm shadow-md">
+                      {userName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <FaChevronDown className="hidden sm:block w-3 h-3 text-white/70" />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="font-semibold text-gray-900">{userName}</p>
+                      <p className="text-sm text-gray-500">{user?.email || 'student@campus.edu'}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false)
+                        navigate('/account')
+                      }}
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
+                    >
+                      <FaCog className="w-4 h-4 text-gray-400" />
+                      Account Settings
+                    </button>
+                    <div className="border-t border-gray-100 mt-2 pt-2">
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                      >
+                        <FaSignOutAlt className="w-4 h-4" />
+                        Sign Out
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

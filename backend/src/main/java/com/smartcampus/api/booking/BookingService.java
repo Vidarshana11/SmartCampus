@@ -2,6 +2,7 @@ package com.smartcampus.api.booking;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -216,12 +217,17 @@ public class BookingService {
 
     // Helper method to convert Entity to DTO
     private BookingDTO convertToDTO(Booking booking) {
+        Long resourceId = safeGet(() -> booking.getResource().getId());
+        String resourceName = safeGet(() -> booking.getResource().getName());
+        Long userId = safeGet(() -> booking.getUser().getId());
+        String userName = safeGet(() -> booking.getUser().getName());
+
         return BookingDTO.builder()
                 .id(booking.getId())
-                .resourceId(booking.getResource().getId())
-                .resourceName(booking.getResource().getName())
-                .userId(booking.getUser().getId())
-                .userName(booking.getUser().getName())
+            .resourceId(resourceId)
+            .resourceName(resourceName != null ? resourceName : "Unknown Resource")
+            .userId(userId)
+            .userName(userName != null ? userName : "Unknown User")
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
                 .purpose(booking.getPurpose())
@@ -233,5 +239,13 @@ public class BookingService {
                 .reviewedAt(booking.getReviewedAt())
                 .createdAt(booking.getCreatedAt())
                 .build();
+    }
+
+    private <T> T safeGet(Supplier<T> resolver) {
+        try {
+            return resolver.get();
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 }

@@ -231,7 +231,7 @@ export const approveAdminBooking = async (token, bookingId) => {
 export const rejectAdminBooking = async (token, bookingId, reason) => {
   const res = await apiClient.put(
     `/api/bookings/${bookingId}/reject`,
-    { rejectionReason: reason },
+    { reason },
     { headers: getAuthHeader(token) }
   )
   return res.data
@@ -300,25 +300,41 @@ export const getNotifications = async (token, { page = 0, size = 10, unreadOnly 
  * Aggregates data from various endpoints
  */
 export const getAdminStats = async (token) => {
-  try {
-    // Fetch data in parallel
-    const [usersRes, resourcesRes, bookingsRes] = await Promise.all([
-      getAdminUsers(token, { page: 0, size: 1 }), // Get total count
-      getAdminResources(token, { page: 0, size: 1 }),
-      apiClient.get('/api/bookings/analytics', {
-        headers: getAuthHeader(token),
-      }),
-    ])
+  const [usersResult, resourcesResult, bookingsResult] = await Promise.allSettled([
+    getAdminUsers(token, { page: 0, size: 1 }),
+    getAdminResources(token, { page: 0, size: 1 }),
+    apiClient.get('/api/bookings/analytics', {
+      headers: getAuthHeader(token),
+    }),
+  ])
 
-    return {
-      totalUsers: usersRes.totalElements || 0,
-      totalResources: resourcesRes.totalElements || 0,
-      totalBookings: bookingsRes.data?.totalBookings || 0,
-      timestamp: new Date(),
-    }
-  } catch (error) {
-    console.error('Failed to fetch admin stats:', error)
-    throw error
+  const totalUsers = usersResult.status === 'fulfilled'
+    ? (usersResult.value.totalElements || 0)
+    : 0
+
+  const totalResources = resourcesResult.status === 'fulfilled'
+    ? (Array.isArray(resourcesResult.value)
+      ? resourcesResult.value.length
+      : (resourcesResult.value.totalElements || resourcesResult.value.totalItems || 0))
+    : 0
+
+  const totalBookings = bookingsResult.status === 'fulfilled'
+    ? (bookingsResult.value.data?.totalBookings || 0)
+    : 0
+
+  if (usersResult.status === 'rejected' || resourcesResult.status === 'rejected' || bookingsResult.status === 'rejected') {
+    console.warn('Admin stats loaded partially due to one or more failing endpoints.', {
+      usersError: usersResult.status === 'rejected' ? usersResult.reason : null,
+      resourcesError: resourcesResult.status === 'rejected' ? resourcesResult.reason : null,
+      bookingsError: bookingsResult.status === 'rejected' ? bookingsResult.reason : null,
+    })
+  }
+
+  return {
+    totalUsers,
+    totalResources,
+    totalBookings,
+    timestamp: new Date(),
   }
 }
 

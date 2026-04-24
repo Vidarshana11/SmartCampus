@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { BRAND_SHORT_NAME } from '../constants/branding'
@@ -22,6 +22,7 @@ export default function Navbar() {
   const navigate = useNavigate()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [announcementSearchTerm, setAnnouncementSearchTerm] = useState('')
+  const userMenuRef = useRef(null)
   const campusLogo = '/universityImage.png'
 
   const isAdmin = user?.role === 'ADMIN'
@@ -39,9 +40,23 @@ export default function Navbar() {
     }
   }
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
   const handleLogout = () => {
+    setUserMenuOpen(false)
     logout()
-    navigate('/', { replace: true })
+    navigate('/login', { replace: true })
   }
 
   const handleAnnouncementSearch = (event) => {
@@ -110,10 +125,12 @@ export default function Navbar() {
             <NotificationBell />
 
             {/* User Menu */}
-            <div className="relative">
+            <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center gap-2 p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-[#c9a227] to-[#ffd700] rounded-full flex items-center justify-center text-[#003366] font-bold text-sm">
                   {userName.charAt(0).toUpperCase()}
@@ -132,20 +149,16 @@ export default function Navbar() {
                       {user?.role || 'Student'}
                     </span>
                   </div>
-                  <Link
-                    to="#"
-                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <FaUser className="w-4 h-4 text-gray-400" />
-                    My Profile
-                  </Link>
-                  <Link
-                    to="#"
-                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false)
+                      navigate('/account')
+                    }}
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
                   >
                     <FaCog className="w-4 h-4 text-gray-400" />
-                    Settings
-                  </Link>
+                    Account Settings
+                  </button>
                   <div className="border-t border-gray-100 mt-2 pt-2">
                     <button
                       onClick={handleLogout}
