@@ -40,7 +40,9 @@ export default function ReportsTab({ token }) {
       setLastUpdated(new Date())
     } catch (err) {
       console.error('Failed to fetch reports:', err)
-      setError('Failed to load reports. Please try again.')
+      const serverMsg = err?.response?.data?.error || err?.response?.data?.message || err?.message
+      const status = err?.response?.status
+      setError(status ? `Failed to load reports (${status}): ${serverMsg}` : `Failed to load reports: ${serverMsg}`)
     } finally {
       setLoading(false)
       setRefreshingBookings(false)
