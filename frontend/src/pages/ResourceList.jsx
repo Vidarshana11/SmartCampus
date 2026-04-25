@@ -165,9 +165,9 @@ const ResourceList = () => {
                   </div>
                   
                   <div className="px-7 py-5 bg-gray-50 border-t border-gray-100 flex justify-end items-center group-hover:bg-blue-50 transition-colors">
-                    <span className="text-sm font-black text-blue-600 group-hover:translate-x-2 transition-transform cursor-pointer">
+                    {/* <span className="text-sm font-black text-blue-600 group-hover:translate-x-2 transition-transform cursor-pointer">
                       RESERVE NOW →
-                    </span>
+                    </span> */}
                   </div>
                 </div>
               ))

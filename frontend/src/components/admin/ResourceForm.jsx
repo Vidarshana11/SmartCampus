@@ -183,7 +183,7 @@ const ResourceForm = ({ token, resourceId, onSuccess, onCancel }) => {
             >
               <option value="ACTIVE">ACTIVE</option>
               <option value="OUT_OF_SERVICE">OUT_OF_SERVICE</option>
-              <option value="MAINTENANCE">MAINTENANCE</option>
+              {/* <option value="MAINTENANCE">MAINTENANCE</option> */}
             </select>
           </div>
         )}
