@@ -284,7 +284,14 @@ export default function AdminPanel() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardTab stats={stats} loading={loading} error={error} />
+        return (
+          <DashboardTab
+            stats={stats}
+            loading={loading}
+            error={error}
+            onNavigateToTab={setActiveTab}
+          />
+        )
       case 'tickets':
         return <TicketManagementTab onSelectTicket={(id) => {
           setSelectedTicketId(id)
@@ -587,7 +594,7 @@ export default function AdminPanel() {
 }
 
 // Dashboard Tab Component
-function DashboardTab({ stats, loading, error }) {
+function DashboardTab({ stats, loading, error, onNavigateToTab }) {
   return (
     <div className="space-y-6">
       {error && (
@@ -619,34 +626,50 @@ function DashboardTab({ stats, loading, error }) {
             </div>
             <div className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex gap-4 p-4 rounded-lg border border-gray-200 hover:bg-blue-50 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => onNavigateToTab('users')}
+                  className="w-full text-left flex gap-4 p-4 rounded-lg border border-gray-200 hover:bg-blue-50 transition-colors"
+                >
                   <FaUsers className="w-8 h-8 text-blue-600 flex-shrink-0 mt-1" />
                   <div>
                     <h4 className="font-semibold text-gray-900">Manage Users</h4>
                     <p className="text-sm text-gray-600">Add, edit, or remove user accounts and manage roles</p>
                   </div>
-                </div>
-                <div className="flex gap-4 p-4 rounded-lg border border-gray-200 hover:bg-green-50 transition-colors">
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigateToTab('resources')}
+                  className="w-full text-left flex gap-4 p-4 rounded-lg border border-gray-200 hover:bg-green-50 transition-colors"
+                >
                   <FaBuilding className="w-8 h-8 text-green-600 flex-shrink-0 mt-1" />
                   <div>
                     <h4 className="font-semibold text-gray-900">Manage Resources</h4>
                     <p className="text-sm text-gray-600">Create and manage campus facilities and equipment</p>
                   </div>
-                </div>
-                <div className="flex gap-4 p-4 rounded-lg border border-gray-200 hover:bg-yellow-50 transition-colors">
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigateToTab('bookings')}
+                  className="w-full text-left flex gap-4 p-4 rounded-lg border border-gray-200 hover:bg-yellow-50 transition-colors"
+                >
                   <FaCalendarCheck className="w-8 h-8 text-yellow-600 flex-shrink-0 mt-1" />
                   <div>
                     <h4 className="font-semibold text-gray-900">Approve Bookings</h4>
                     <p className="text-sm text-gray-600">Review and approve facility booking requests</p>
                   </div>
-                </div>
-                <div className="flex gap-4 p-4 rounded-lg border border-gray-200 hover:bg-purple-50 transition-colors">
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigateToTab('announcements')}
+                  className="w-full text-left flex gap-4 p-4 rounded-lg border border-gray-200 hover:bg-purple-50 transition-colors"
+                >
                   <FaBullhorn className="w-8 h-8 text-purple-600 flex-shrink-0 mt-1" />
                   <div>
                     <h4 className="font-semibold text-gray-900">Send Announcements</h4>
                     <p className="text-sm text-gray-600">Broadcast messages to campus community</p>
                   </div>
-                </div>
+                </button>
               </div>
             </div>
           </div>
